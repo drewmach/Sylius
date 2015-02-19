@@ -22,6 +22,7 @@
     "require": {
         "php": ">=5.3.3",
 
+<<<<<<< HEAD
         "knplabs/gaufrette":  "0.2.*@dev",
         "sylius/addressing":  "0.14.*@dev",
         "sylius/archetype":   "0.14.*@dev",
@@ -41,6 +42,7 @@
         "sylius/resource":    "0.14.*@dev",
         "sylius/sequence":    "0.14.*@dev",
         "sylius/shipping":    "0.14.*@dev",
+        "sylius/subscription": "0.12.*@dev",
         "sylius/storage":     "0.14.*@dev",
         "sylius/taxation":    "0.14.*@dev",
         "sylius/taxonomy":    "0.14.*@dev",
