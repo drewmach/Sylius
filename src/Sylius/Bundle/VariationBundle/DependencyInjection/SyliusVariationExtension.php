@@ -17,7 +17,7 @@ use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Definition;
 
 /**
- * Sylius product catalog system container extension.
+ * Product catalog extension.
  *
  * @author Paweł Jędrzejewski <pawel@sylius.org>
  */
@@ -28,7 +28,12 @@ class SyliusVariationExtension extends AbstractResourceExtension
      */
     public function load(array $config, ContainerBuilder $container)
     {
-        $this->configure($config, new Configuration(), $container, self::CONFIGURE_LOADER | self::CONFIGURE_DATABASE | self::CONFIGURE_PARAMETERS | self::CONFIGURE_VALIDATORS);
+        $this->configure(
+            $config,
+            new Configuration(),
+            $container,
+            self::CONFIGURE_LOADER | self::CONFIGURE_DATABASE | self::CONFIGURE_PARAMETERS | self::CONFIGURE_VALIDATORS
+        );
     }
 
     /**
@@ -55,6 +60,9 @@ class SyliusVariationExtension extends AbstractResourceExtension
             if (!isset($config['validation_groups'][$variable]['option'])) {
                 $config['validation_groups'][$variable]['option'] = array('sylius');
             }
+            if (!isset($config['validation_groups'][$variable]['option_translation'])) {
+                $config['validation_groups'][$variable]['option_translation'] = array('sylius');
+            }
             if (!isset($config['validation_groups'][$variable]['option_value'])) {
                 $config['validation_groups'][$variable]['option_value'] = array('sylius');
             }
@@ -73,7 +81,7 @@ class SyliusVariationExtension extends AbstractResourceExtension
 
         $config['validation_groups'] = $convertedConfig;
 
-        return $config;
+        return parent::process($config, $container);
     }
 
     /**
@@ -88,15 +96,17 @@ class SyliusVariationExtension extends AbstractResourceExtension
     {
         $variantAlias = $variable.'_variant';
         $optionAlias = $variable.'_option';
+        $optionTranslationAlias = $variable.'_option_translation';
         $optionValueAlias = $variable.'_option_value';
 
         $variantClasses = $config[$variantAlias];
         $optionClasses = $config[$optionAlias];
+        $optionTranslationClasses = $config[$optionTranslationAlias];
         $optionValueClasses = $config[$optionValueAlias];
 
         $variantFormType = new Definition($variantClasses['form']);
         $variantFormType
-            ->setArguments(array($variable, $variantClasses['model'], '%sylius.validation_group.'.$variantAlias.'%'))
+            ->setArguments(array($variantClasses['model'], '%sylius.validation_group.'.$variantAlias.'%', $variable))
             ->addTag('form.type', array('alias' => 'sylius_'.$variantAlias))
         ;
 
@@ -112,7 +122,7 @@ class SyliusVariationExtension extends AbstractResourceExtension
 
         $variantMatchFormType = new Definition('Sylius\Bundle\VariationBundle\Form\Type\VariantMatchType');
         $variantMatchFormType
-            ->setArguments(array($variable, $variantClasses['model'], '%sylius.validation_group.'.$variantAlias.'%'))
+            ->setArguments(array($variable))
             ->addTag('form.type', array('alias' => sprintf('sylius_%s_match', $variantAlias)))
         ;
 
@@ -120,11 +130,19 @@ class SyliusVariationExtension extends AbstractResourceExtension
 
         $optionFormType = new Definition($optionClasses['form']);
         $optionFormType
-            ->setArguments(array($variable, $optionClasses['model'], '%sylius.validation_group.'.$optionAlias.'%'))
+            ->setArguments(array($optionClasses['model'], '%sylius.validation_group.'.$optionAlias.'%', $variable))
             ->addTag('form.type', array('alias' => 'sylius_'.$optionAlias))
         ;
 
         $container->setDefinition('sylius.form.type.'.$optionAlias, $optionFormType);
+
+        $optionTranslationFormType = new Definition($optionTranslationClasses['form']);
+        $optionTranslationFormType
+            ->setArguments(array($optionTranslationClasses['model'], '%sylius.validation_group.'.$optionTranslationAlias.'%', $variable))
+            ->addTag('form.type', array('alias' => 'sylius_'.$optionTranslationAlias))
+        ;
+
+        $container->setDefinition('sylius.form.type.'.$optionTranslationAlias, $optionTranslationFormType);
 
         $choiceTypeClasses = array(
             SyliusResourceBundle::DRIVER_DOCTRINE_ORM => 'Sylius\Bundle\VariationBundle\Form\Type\OptionEntityChoiceType'
@@ -140,7 +158,7 @@ class SyliusVariationExtension extends AbstractResourceExtension
 
         $optionValueFormType = new Definition($optionValueClasses['form']);
         $optionValueFormType
-            ->setArguments(array($variable, $optionValueClasses['model'], '%sylius.validation_group.'.$optionValueAlias.'%'))
+            ->setArguments(array($optionValueClasses['model'], '%sylius.validation_group.'.$optionValueAlias.'%', $variable))
             ->addTag('form.type', array('alias' => 'sylius_'.$optionValueAlias))
         ;
 

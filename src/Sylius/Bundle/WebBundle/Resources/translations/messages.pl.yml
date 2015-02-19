@@ -1,6 +1,9 @@
 # This file is part of the Sylius package.
 # (c) Paweł Jędrzejewski
 
+email:
+  order_confirmation:
+    subject: Tytuł
 sylius:
   account:
     address:
@@ -20,6 +23,8 @@ sylius:
       list: Wszystkie Twoje adresy
       update: Edytuj adres
     home:
+      email: ""
+      id: ""
       outline: sylius.account.home.outline
       since: Jesteś naszym klientem od
       welcome: Witaj w swoim panelu
@@ -30,12 +35,16 @@ sylius:
       empty: Nie dokonałeś jeszcze żadnego zamówienia.
       invoice: Faktura
       list: Wszystkie Twoje zamówienia
+      number: ""
+      payment_mode: ""
       placed_at: 'Umieszczone w %at%'
       shipment:
         pending: Oczekujące
         ready: 'Gotowy od %at%'
         returned: 'Zwrócone %at%'
         shipped: 'Wysłane %at%'
+      shipment_mode: ""
+      state: ""
       total: Ogółem
       tracking_number: Numer śledzenia
     title: Moje konto
@@ -125,7 +134,7 @@ sylius:
       index: Kupony
     property:
       index: Właściwości
-    prototype:
+    archetype:
       index: Prototypy
     sales: Sprzedaż
     shipment:
@@ -306,7 +315,7 @@ sylius:
     no_results: Brak skonfigurowanych ustawień regionalnych.
     update_header: Edytuj ustawienia regionalne
     updated_at: Ostatnia aktualizacja
-  login: Zaloguj
+  login: Zaloguj się
   login_header: Administracja
   logo: Sylius
   manage: Zarządzaj
@@ -317,6 +326,8 @@ sylius:
     frontend_title: Sylius, nowoczesny ecommerce dla Symfony2
   na: N/D
   newest: Najnowsze produkty
+  "no": false
+  no_results: Brak wyniku
   option:
     create: Dodaj wariant
     create_header: Nowy wariant produktu
@@ -355,6 +366,7 @@ sylius:
     shipment_states:
       pending: Oczekujące
     shipments: Wysyłka
+    release_inventory: Inwentarz wydań
     inventory_unit:
       backorder: Zamówiony
       fulfill: Uzupełnij
@@ -374,6 +386,7 @@ sylius:
     update_header: Edycja zamówienia
     user: Użytkownik
   shipment:
+    ship: Dostawa
     created_at: data utworzenia
     id: ID
     index_header: Przesyłki
@@ -405,6 +418,7 @@ sylius:
     create_header: Dodaj nową zawartość statyczną
     id: ID
     index_header: Strony
+    no_results: Nie ma żadnych statycznych stron do pokazania.
     title: Tytuł
     update_header: Ostatnia aktualizacja
   password: Hasło
@@ -415,15 +429,17 @@ sylius:
     created_at: Utworzona
     id: ID
     index_header: Płatności
+    manage: Zarządzania płatnościami
     method: Metoda
     no_results: Brak skonfigurowanych płatności.
     state:
+      0: Status
       checkout: Koszyk
       completed: Zakończone
-      failed: Niepowodzenie
+      failed: Nieudane
       new: Nowy
       pending: Oczekujący
-      processing: W trakcie przetwarzania
+      processing: Przetwarzany
       unknown: Nieznany
       void: Void
     update_header: Edycja płatności
@@ -444,6 +460,7 @@ sylius:
     available_on: Dostępny od
     available_on_demand: Dostępny na zamówienie
     categorization: Kategoria
+    contain_variants: Zawiera Warianty
     create: Dodaj produkt
     create_header: Nowy produkt
     description: Opis
@@ -457,6 +474,7 @@ sylius:
     no_options: Brak wariantów dla tego produktu
     no_properties: Produkt nie posiada zdefiniowanych właściwości
     no_results: Brak produktów do wyświetlenia.
+    no_shipping_category: Brak kategorii wysyłki
     no_short_description: '<i>Brak krótkiego opisu</i>'
     no_sku: '<i>Brak SKU</i>'
     no_tax_category: Brak kategorii podatkowej
@@ -464,10 +482,11 @@ sylius:
     options: Warianty
     price: Cena detaliczna
     properties: Właściwości
-    restricted_zone: Strefa
+    restricted_zone: Strefa zamknięta
     shipping_category: Kategoria wysyłki
     show: Zobacz więcej
     show_header: 'Szczegóły produktu <small>Oglądasz produkt "<strong>%product%</strong>"</small>'
+    show_in_store: pokaż w sklepie
     sku: SKU
     stock: Ilość na magazynie
     tabs:
@@ -477,9 +496,12 @@ sylius:
       product: Produkt
       properties: Właściwości
     tax_category: Kategoria podatkowa
+    unavailable: Niedostępne
     update_header: Edycja produktu
     updated_at: Ostatnia aktualizacja
     variant_selection_method: Metoda wyboru wariantu
+    view_details: 'Zobacz szczegóły %product%.'
+  product_not_available_in_zone: Niedostępne w Twoim kraju
   promotion:
     actions: Akcje
     add_action: Dodaj akcje
@@ -490,6 +512,7 @@ sylius:
     created_at: Data utworzenia
     description: Opis
     ends_at: Data zakończenia
+    general_info: Informacje ogólne
     id: ID
     index_header: Aktualne promocje
     manage: Zarządzanie promocjami
@@ -531,7 +554,7 @@ sylius:
     type: typ
     update_header: Edycja właściwości
     updated_at: ostatnia aktualizacja
-  prototype:
+  archetype:
     build: Budowa prototypu
     build_header: Tworzenie produkto na podstwie prototypu
     create: Dodaj prototyp
@@ -628,16 +651,16 @@ sylius:
     product_index_header: 'Produkty sklasyfikowane jako "%name%"'
     update_header: Edycja taksonomii
   taxonomy:
-    create: Dodaj taksonomie
-    create_header: Nowa taksonomia
+    create: Dodaj kategorię
+    create_header: Nowa kategoria
     image: Wybierz zdjęcie
-    index_header: 'Taksonomia <small>Tutaj znajdziesz zdefiniowane grupy produktów</small>'
+    index_header: 'Kategoria <small>Tutaj znajdziesz zdefiniowane grupy produktów</small>'
     manage: Zarządzanie kategoriami
     name: Nazwa
     no_image: Brak zdjęcia
-    no_results: Brak zdefiniowanych grup produktów.
-    show_header: 'Taksonomia <small><strong>%name%</strong></small>'
-    update_header: Edycja taksonomii
+    no_results: Brak zdefiniowanych kategorii.
+    show_header: 'Kategoria <small><strong>%name%</strong></small>'
+    update_header: Edycja kategorii
   total_quantity: Całkowita ilość
   unknown: Nieznany
   user:
@@ -681,7 +704,7 @@ sylius:
     sku: SKU
     stock: Aktualnie w magazynie
     update_header: Edycja wariantu
-  "yes": tak
+  "yes": true
   zone:
     add_member: Dodaj kraj
     create: Dodaj strefę

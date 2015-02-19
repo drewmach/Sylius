@@ -1,7 +1,6 @@
 # This file is part of the Sylius package.
 # (c) Paweł Jędrzejewski
 
----: ---
 sylius:
   checkout:
     shipping_method:
@@ -23,6 +22,8 @@ sylius:
         different_billing_address: ¿Usar una dirección diferente para la facturación?
       payment_method: Método de pago
       shipping_method: Método de envío
+    coupon:
+      per_user_usage_limit: Límite de uso por usuario
     group:
       name: Nombre
       roles: Roles
@@ -32,11 +33,12 @@ sylius:
       code: Código
       enabled: Activado
     order_filter:
-      created_at_from: Desde
-      created_at_to: Hasta
+      created_at_from: Creado después de
+      created_at_to: Creado antes de
       number: Número
       total_from: Desde
       total_to: Hasta
+      payment_state: Estado del pago
     page:
       body: Cuerpo
       id: ID
@@ -44,7 +46,7 @@ sylius:
     product:
       restricted_zone: Zona restringida
       shipping_category: Categoría de envío
-      short_description: Breve descripción
+      short_description: Descripción breve
       tax_category: Categoría del impuesto
       variant_selection_method: Método de selección variante
     product_filter:
@@ -84,10 +86,10 @@ sylius:
     variant:
       available_on_demand: Disponible bajo demanda
       depth: Profundidad
-      height: Altura
+      height: Alto
       images: Imágenes
       on_hand: Existencias actuales
       price: Precio
       sku: SKU
       weight: Peso
-      width: Anchura
+      width: Ancho

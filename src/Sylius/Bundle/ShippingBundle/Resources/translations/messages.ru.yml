@@ -4,9 +4,12 @@
 sylius:
   form:
     shipment:
+      state: Cтатус
       states:
-        checkout: Сверка
-        pending: Ожидает
+        checkout: Оформление заказа
+        dispatched: Отправлен
+        pending: В обработке
+        ready: Готов
         shipped: Доставлено
         returned: Возвращено
       tracking_code: Код отслеживания
@@ -15,11 +18,13 @@ sylius:
         amount: Сумма
       flexible_rate_configuration:
         additional_item_cost: Стоимость дополнительного товара
+        additional_item_limit: Лимитировать дополнительные позиции
         first_item_cost: Стоимость первого товара
       per_item_rate_configuration:
         amount: Сумма
       weight_rate_configuration:
-        amount: Сумма
+        amount: Количество
+        division: Деление
     shipping_category:
       description: Описание
       name: Название
@@ -28,4 +33,5 @@ sylius:
       category: Категория
       category_requirement: Условия категории
       configuration: Конфигурация
+      enabled: Активен
       name: Название

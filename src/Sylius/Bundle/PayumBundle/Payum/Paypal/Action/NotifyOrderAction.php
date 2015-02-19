@@ -12,46 +12,39 @@
 namespace Sylius\Bundle\PayumBundle\Payum\Paypal\Action;
 
 use Doctrine\Common\Persistence\ObjectManager;
-use Finite\Factory\FactoryInterface;
 use Payum\Core\Exception\RequestNotSupportedException;
-use Payum\Core\Request\SecuredNotifyRequest;
-use Payum\Core\Request\SyncRequest;
+use Payum\Core\Request\Notify;
+use Payum\Core\Request\Sync;
+use SM\Factory\FactoryInterface;
 use Sylius\Bundle\PayumBundle\Payum\Action\AbstractPaymentStateAwareAction;
-use Sylius\Bundle\PayumBundle\Payum\Request\StatusRequest;
-use Sylius\Component\Core\Model\PaymentInterface;
-use Symfony\Component\EventDispatcher\EventDispatcherInterface;
+use Sylius\Bundle\PayumBundle\Payum\Request\GetStatus;
+use Sylius\Component\Payment\Model\PaymentInterface;
 
 class NotifyOrderAction extends AbstractPaymentStateAwareAction
 {
-    /**
-     * @var EventDispatcherInterface
-     */
-    protected $eventDispatcher;
-
     /**
      * @var ObjectManager
      */
     protected $objectManager;
 
     /**
-     * @param EventDispatcherInterface $eventDispatcher
      * @param ObjectManager            $objectManager
      * @param FactoryInterface         $factory
      */
-    public function __construct(EventDispatcherInterface $eventDispatcher, ObjectManager $objectManager, FactoryInterface $factory)
+    public function __construct(ObjectManager $objectManager, FactoryInterface $factory)
     {
         parent::__construct($factory);
 
-        $this->eventDispatcher = $eventDispatcher;
         $this->objectManager   = $objectManager;
     }
 
     /**
      * {@inheritDoc}
+     *
+     * @param $request Notify
      */
     public function execute($request)
     {
-        /** @var $request SecuredNotifyRequest */
         if (!$this->supports($request)) {
             throw RequestNotSupportedException::createActionNotSupported($this, $request);
         }
@@ -59,12 +52,12 @@ class NotifyOrderAction extends AbstractPaymentStateAwareAction
         /** @var $payment PaymentInterface */
         $payment = $request->getModel();
 
-        $this->payment->execute(new SyncRequest($payment));
+        $this->payment->execute(new Sync($payment));
 
-        $status = new StatusRequest($payment);
+        $status = new GetStatus($payment);
         $this->payment->execute($status);
 
-        $nextState = $status->getStatus();
+        $nextState = $status->getValue();
 
         $this->updatePaymentState($payment, $nextState);
 
@@ -77,7 +70,8 @@ class NotifyOrderAction extends AbstractPaymentStateAwareAction
     public function supports($request)
     {
         return
-            $request instanceof SecuredNotifyRequest &&
+            $request instanceof Notify &&
+            $request->getToken() &&
             $request->getModel() instanceof PaymentInterface
         ;
     }

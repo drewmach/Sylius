@@ -12,18 +12,26 @@
 namespace Sylius\Bundle\CoreBundle\Routing;
 
 use Doctrine\Common\Persistence\ManagerRegistry;
+use Doctrine\Common\Persistence\ObjectRepository;
 use Doctrine\Common\Util\ClassUtils;
-
+use Symfony\Cmf\Bundle\RoutingBundle\Doctrine\DoctrineProvider;
+use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Routing\Exception\RouteNotFoundException;
 use Symfony\Component\Routing\Route;
 use Symfony\Component\Routing\RouteCollection;
-use Symfony\Component\Routing\Exception\RouteNotFoundException;
-use Symfony\Component\HttpFoundation\Request;
 
-use Symfony\Cmf\Component\Routing\RouteProviderInterface;
-use Symfony\Cmf\Bundle\RoutingBundle\Doctrine\DoctrineProvider;
-
+/**
+ * @author Gonzalo Vilaseca <gvilaseca@reiss.co.uk>
+ * @author Paweł Jędrzejewski <pawel@sylius.org>
+ */
 class RouteProvider extends DoctrineProvider implements RouteProviderInterface
 {
+    /**
+     * @var ContainerInterface
+     */
+    protected $container;
+
     /**
      * Route configuration for the object classes to search in
      *
@@ -32,12 +40,23 @@ class RouteProvider extends DoctrineProvider implements RouteProviderInterface
     protected $routeConfigs;
 
     /**
-     * @param ManagerRegistry $managerRegistry
-     * @param array $routeConfigs
+     * Contains an associative array of all the classes and the repositories needed in route generation
+     *
+     * @var ObjectRepository[]
      */
-    public function __construct(ManagerRegistry $managerRegistry, array $routeConfigs)
+    protected $classRepositories = array();
+
+    /**
+     * @param ContainerInterface $container
+     * @param ManagerRegistry    $managerRegistry
+     * @param array              $routeConfigs
+     */
+    public function __construct(ContainerInterface $container, ManagerRegistry $managerRegistry, array $routeConfigs)
     {
+        $this->container = $container;
         $this->routeConfigs = $routeConfigs;
+        $this->classRepositories = array();
+
         parent::__construct($managerRegistry);
     }
 
@@ -53,8 +72,7 @@ class RouteProvider extends DoctrineProvider implements RouteProviderInterface
             }
         }
 
-        $repositories = $this->getRepositories();
-        foreach ($repositories as $className => $repository) {
+        foreach ($this->getRepositories() as $className => $repository) {
             $entity = $repository->findOneBy(array($this->routeConfigs[$className]['field'] => $name));
             if ($entity) {
                 return $this->createRouteFromEntity($entity);
@@ -75,8 +93,7 @@ class RouteProvider extends DoctrineProvider implements RouteProviderInterface
             }
 
             $collection = new RouteCollection();
-            $repositories = $this->getRepositories();
-            foreach ($repositories as $className => $repository) {
+            foreach ($this->getRepositories() as $className => $repository) {
                 $entities = $repository->findBy(array(), null, $this->routeCollectionLimit ?: null);
                 foreach ($entities as $entity) {
                     $name = $this->getFieldValue($entity, $this->routeConfigs[$className]['field']);
@@ -111,24 +128,24 @@ class RouteProvider extends DoctrineProvider implements RouteProviderInterface
             return $collection;
         }
 
-        $repositories = $this->getRepositories();
-        foreach ($repositories as $className => $repository) {
+        foreach ($this->getRepositories() as $className => $repository) {
             if ('' === $this->routeConfigs[$className]['prefix']
                 || 0 === strpos($path, $this->routeConfigs[$className]['prefix'])
             ) {
-                $name = substr($path, strlen($this->routeConfigs[$className]['prefix']));
-                $name = trim($name, '/');
-                $entity = $repository->findOneBy(array($this->routeConfigs[$className]['field'] => $name));
+                $value = substr($path, strlen($this->routeConfigs[$className]['prefix']));
+                $value = trim($value, '/');
+                $entity = $repository->findOneBy(array($this->routeConfigs[$className]['field'] => $value));
+
                 if (!$entity) {
                     continue;
                 }
 
-                $route = $this->createRouteFromEntity($entity);
-                if (preg_match('/.+\.([a-z]+)$/i', $name, $matches)) {
+                $route = $this->createRouteFromEntity($entity, $value);
+                if (preg_match('/.+\.([a-z]+)$/i', $value, $matches)) {
                     $route->setDefault('_format', $matches[1]);
                 }
 
-                $collection->add($name, $route);
+                $collection->add($value, $route);
             }
         }
 
@@ -136,22 +153,39 @@ class RouteProvider extends DoctrineProvider implements RouteProviderInterface
     }
 
     /**
+     * This method is called from a compiler pass
+     *
+     * @param string           $class
+     * @param string           $id
+     */
+    public function addRepository($class, $id)
+    {
+        if (!is_string($id)) {
+            throw new \InvalidArgumentException('Expected service id!');
+        }
+
+        $this->classRepositories[$class] = $id;
+    }
+
+    /**
+     * Get repository services.
+     *
      * @return array
      */
-    protected function getRepositories()
+    private function getRepositories()
     {
-        $om = $this->getObjectManager();
         $repositories = array();
-        foreach ($this->routeConfigs as $className => $foo) {
-            $repositories[$className] = $om->getRepository($className);
+
+        foreach ($this->classRepositories as $class => $id) {
+            $repositories[$class] = $this->container->get($id);
         }
 
         return $repositories;
     }
 
     /**
-     * @param $entity
-     * @param $fieldName
+     * @param object $entity
+     * @param string $fieldName
      *
      * @return string
      */
@@ -161,15 +195,24 @@ class RouteProvider extends DoctrineProvider implements RouteProviderInterface
     }
 
     /**
-     * @param $entity
+     * @param object $entity
      *
      * @return Route
      */
-    private function createRouteFromEntity($entity)
+    private function createRouteFromEntity($entity, $value = null)
     {
         $className = ClassUtils::getClass($entity);
         $fieldName = $this->routeConfigs[$className]['field'];
-        $value = $this->getFieldValue($entity, $fieldName);
+
+        // Used for matching by translated field
+        // eg:
+        // If the url slug doesn't match the current's locale slug
+        // the method getSlug would return the slug in current locale
+        // it won't match the url and will fail
+        // TODO refactor class if locale is included in url
+        if (null === $value) {
+            $value = $this->getFieldValue($entity, $fieldName);
+        }
         $defaults = array('_sylius_entity' => $entity, $fieldName => $value);
 
         return new Route($this->routeConfigs[$className]['prefix'].'/'.$value, $defaults);

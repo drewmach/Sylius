@@ -12,15 +12,15 @@
 namespace Sylius\Bundle\PayumBundle\Payum\Be2bill\Action;
 
 use Doctrine\Common\Persistence\ObjectManager;
-use Finite\Factory\FactoryInterface;
 use Payum\Be2Bill\Api;
-use Payum\Bundle\PayumBundle\Request\ResponseInteractiveRequest;
+use Payum\Core\Bridge\Symfony\Reply\HttpResponse;
 use Payum\Core\Exception\RequestNotSupportedException;
-use Payum\Core\Request\NotifyRequest;
+use Payum\Core\Request\GetHttpRequest;
+use Payum\Core\Request\Notify;
+use SM\Factory\FactoryInterface;
 use Sylius\Bundle\PayumBundle\Payum\Action\AbstractPaymentStateAwareAction;
-use Sylius\Bundle\PayumBundle\Payum\Request\StatusRequest;
+use Sylius\Bundle\PayumBundle\Payum\Request\GetStatus;
 use Sylius\Component\Resource\Repository\RepositoryInterface;
-use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
@@ -40,11 +40,6 @@ class NotifyAction extends AbstractPaymentStateAwareAction
     protected $paymentRepository;
 
     /**
-     * @var EventDispatcherInterface
-     */
-    protected $eventDispatcher;
-
-    /**
      * @var ObjectManager
      */
     protected $objectManager;
@@ -57,7 +52,6 @@ class NotifyAction extends AbstractPaymentStateAwareAction
     public function __construct(
         Api $api,
         RepositoryInterface $paymentRepository,
-        EventDispatcherInterface $eventDispatcher,
         ObjectManager $objectManager,
         FactoryInterface $factory,
         $identifier
@@ -66,22 +60,23 @@ class NotifyAction extends AbstractPaymentStateAwareAction
 
         $this->api               = $api;
         $this->paymentRepository = $paymentRepository;
-        $this->eventDispatcher   = $eventDispatcher;
         $this->objectManager     = $objectManager;
         $this->identifier        = $identifier;
     }
 
     /**
      * {@inheritDoc}
+     *
+     * @param $request Notify
      */
     public function execute($request)
     {
-        /** @var $request NotifyRequest */
         if (!$this->supports($request)) {
             throw RequestNotSupportedException::createActionNotSupported($this, $request);
         }
 
-        $details = $request->getNotification();
+        $this->payment->execute($httpRequest = new GetHttpRequest());
+        $details = $httpRequest->query;
 
         if (!$this->api->verifyHash($details)) {
             throw new BadRequestHttpException('Hash cannot be verified.');
@@ -105,16 +100,16 @@ class NotifyAction extends AbstractPaymentStateAwareAction
         $details = array_merge($payment->getDetails(), $details);
         $payment->setDetails($details);
 
-        $status = new StatusRequest($payment);
+        $status = new GetStatus($payment);
         $this->payment->execute($status);
 
-        $nextState = $status->getStatus();
+        $nextState = $status->getValue();
 
         $this->updatePaymentState($payment, $nextState);
 
         $this->objectManager->flush();
 
-        throw new ResponseInteractiveRequest(new Response('OK', 200));
+        throw new HttpResponse(new Response('OK', 200));
     }
 
     /**
@@ -122,6 +117,6 @@ class NotifyAction extends AbstractPaymentStateAwareAction
      */
     public function supports($request)
     {
-        return $request instanceof NotifyRequest;
+        return $request instanceof Notify;
     }
 }

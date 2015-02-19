@@ -4,7 +4,7 @@
 security:
     providers:
         fos_userbundle:
-            id: fos_user.user_provider.username
+            id: fos_user.user_provider.username_email
     encoders:
         FOS\UserBundle\Model\UserInterface: sha512
     firewalls:
@@ -21,9 +21,15 @@ security:
                 use_forward:  false
                 use_referer:  true
             logout:
-                path:   /administration/logout
+                path:   /logout
                 target: /administration/login
             anonymous: true
+
+        api:
+            pattern:    ^/api
+            fos_oauth:  true
+            stateless:  true
+            anonymous:  true
 
         main:
             switch_user: { role: ROLE_SYLIUS_ADMIN }
@@ -55,6 +61,10 @@ security:
             logout: true
             anonymous: true
 
+        oauth_token:
+            pattern:  ^/oauth/v2/token
+            security: false
+
         dev:
             pattern:  ^/(_(profiler|wdt)|css|images|js)/
             security: false
@@ -70,5 +80,7 @@ security:
         - { path: "/administration.*", role: ROLE_SYLIUS_ADMIN }
 
         - { path: "/account.*", role: ROLE_USER }
+
+        - { path: ^/api, role: ROLE_API }
 
         - { path: "/_partial.*", ip: 127.0.0.1 }

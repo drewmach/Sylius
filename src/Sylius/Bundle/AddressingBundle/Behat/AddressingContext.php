@@ -16,7 +16,6 @@ use Sylius\Bundle\ResourceBundle\Behat\DefaultContext;
 use Sylius\Component\Addressing\Model\CountryInterface;
 use Sylius\Component\Addressing\Model\ProvinceInterface;
 use Sylius\Component\Addressing\Model\ZoneInterface;
-use Symfony\Component\Locale\Locale;
 
 class AddressingContext extends DefaultContext
 {
@@ -44,7 +43,7 @@ class AddressingContext extends DefaultContext
         if (null === $country = $this->getRepository('country')->findOneBy(array('name' => $name))) {
             $country = $this->getRepository('country')->createNew();
             $country->setName(trim($name));
-            $country->setIsoName(array_search($name, Locale::getDisplayCountries(Locale::getDefault())));
+            $country->setIsoName(substr($name, 0, 3));
 
             if (null !== $provinces) {
                 $provinces = $provinces instanceof TableNode ? $provinces->getHash() : $provinces;
@@ -70,7 +69,18 @@ class AddressingContext extends DefaultContext
     public function thereAreFollowingZones(TableNode $table)
     {
         foreach ($table->getHash() as $data) {
-            $this->thereIsZone($data['name'], $data['type'], explode(',', $data['members']), false);
+            $scope = null;
+            if (!empty($data['scope'])) {
+                $scope = $data['scope'];
+            }
+
+            $this->thereIsZone(
+                $data['name'],
+                $data['type'],
+                explode(',', $data['members']),
+                $scope,
+                false
+            );
         }
 
         $this->getEntityManager()->flush();
@@ -80,7 +90,7 @@ class AddressingContext extends DefaultContext
      * @Given /^I created zone "([^"]*)"$/
      * @Given /^there is zone "([^"]*)"$/
      */
-    public function thereIsZone($name, $type = ZoneInterface::TYPE_COUNTRY, array $members = array(), $flush = true)
+    public function thereIsZone($name, $type = ZoneInterface::TYPE_COUNTRY, array $members = array(), $scope = null, $flush = true)
     {
         $repository = $this->getRepository('zone');
 
@@ -88,6 +98,7 @@ class AddressingContext extends DefaultContext
         $zone = $repository->createNew();
         $zone->setName($name);
         $zone->setType($type);
+        $zone->setScope($scope);
 
         foreach ($members as $memberName) {
             $member = $this->getService('sylius.repository.zone_member_'.$type)->createNew();
@@ -123,5 +134,23 @@ class AddressingContext extends DefaultContext
         $this->getEntityManager()->persist($province);
 
         return $province;
+    }
+
+    /**
+     * @Given the following country translations exist
+     */
+    public function theFollowingCountryTranslationsExist(TableNode $table)
+    {
+        $manager = $this->getEntityManager();
+
+        foreach ($table->getHash() as $data) {
+            $countryTranslation = $this->findOneByName('country_translation', $data['country']);
+            $country = $countryTranslation->getTranslatable();
+            $country
+                ->setCurrentLocale($data['locale'])
+                ->setName($data['name']);
+        }
+
+        $manager->flush();
     }
 }

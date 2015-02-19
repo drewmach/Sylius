@@ -1,7 +1,6 @@
 # This file is part of the Sylius package.
 # (c) Paweł Jędrzejewski
 
----: ---
 sylius:
   checkout:
     shipping_method:
@@ -21,7 +20,7 @@ sylius:
     checkout:
       addressing:
         different_billing_address: Utiliser une adresse différente pour la facturation ?
-      payment_method: Mode de paiement
+      payment_method: Moyen de paiement
       shipping_method: Mode de livraison
     group:
       name: Nom
@@ -32,11 +31,12 @@ sylius:
       code: Code
       enabled: Activé
     order_filter:
-      created_at_from: De
-      created_at_to: À
+      created_at_from: Créé après le
+      created_at_to: Créé avant le
       number: Numéro
       total_from: De
       total_to: À
+      payment_state: Etat du paiement
     page:
       body: Corps
       id: ID
@@ -45,7 +45,7 @@ sylius:
       restricted_zone: Restriction de zone
       shipping_category: Catégorie de livraison
       short_description: Brève description
-      tax_category: Catégorie de TVA
+      tax_category: Catégorie de taxe
       variant_selection_method: Méthode de sélection de variante
     product_filter:
       name: Nom
@@ -63,7 +63,7 @@ sylius:
       created_at_from: De
       created_at_to: À
       number: Numéro de commande
-      shipping_address: Expédier au nom de
+      shipping_address: Expédié à
     shipping_method:
       zone: Zone
     taxon:

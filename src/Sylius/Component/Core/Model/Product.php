@@ -17,22 +17,16 @@ use Sylius\Component\Addressing\Model\ZoneInterface;
 use Sylius\Component\Product\Model\Product as BaseProduct;
 use Sylius\Component\Shipping\Model\ShippingCategoryInterface;
 use Sylius\Component\Taxation\Model\TaxCategoryInterface;
+use Sylius\Component\Taxonomy\Model\TaxonInterface as BaseTaxonInterface;
 
 /**
  * Sylius core product entity.
  *
  * @author Paweł Jędrzejewski <pawel@sylius.org>
+ * @author Gonzalo Vilaseca <gvilaseca@reiss.co.uk>
  */
 class Product extends BaseProduct implements ProductInterface
 {
-    /**
-     * Short product description.
-     * For lists displaying.
-     *
-     * @var string
-     */
-    protected $shortDescription;
-
     /**
      * Variant selection method.
      *
@@ -43,7 +37,7 @@ class Product extends BaseProduct implements ProductInterface
     /**
      * Taxons.
      *
-     * @var Collection|TaxonInterface[]
+     * @var Collection|BaseTaxonInterface[]
      */
     protected $taxons;
 
@@ -142,8 +136,14 @@ class Product extends BaseProduct implements ProductInterface
     /**
      * {@inheritdoc}
      */
-    public function getTaxons()
+    public function getTaxons($taxonomy = null)
     {
+        if (null !== $taxonomy) {
+            return $this->taxons->filter(function (BaseTaxonInterface $taxon) use ($taxonomy) {
+                return $taxonomy === strtolower($taxon->getTaxonomy()->getName());
+            });
+        }
+
         return $this->taxons;
     }
 
@@ -160,6 +160,38 @@ class Product extends BaseProduct implements ProductInterface
     /**
      * {@inheritdoc}
      */
+    public function addTaxon(BaseTaxonInterface $taxon)
+    {
+        if (!$this->hasTaxon($taxon)) {
+            $this->taxons->add($taxon);
+        }
+
+        return $this;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function removeTaxon(BaseTaxonInterface $taxon)
+    {
+        if ($this->hasTaxon($taxon)) {
+            $this->taxons->removeElement($taxon);
+        }
+
+        return $this;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function hasTaxon(BaseTaxonInterface $taxon)
+    {
+        return $this->taxons->contains($taxon);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
     public function getPrice()
     {
         return $this->getMasterVariant()->getPrice();
@@ -171,24 +203,6 @@ class Product extends BaseProduct implements ProductInterface
     public function setPrice($price)
     {
         $this->getMasterVariant()->setPrice($price);
-
-        return $this;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function getShortDescription()
-    {
-        return $this->shortDescription;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function setShortDescription($shortDescription)
-    {
-        $this->shortDescription = $shortDescription;
 
         return $this;
     }
@@ -272,5 +286,30 @@ class Product extends BaseProduct implements ProductInterface
             self::VARIANT_SELECTION_CHOICE => 'Variant choice',
             self::VARIANT_SELECTION_MATCH  => 'Options matching',
         );
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getShortDescription()
+    {
+        return $this->translate()->getShortDescription();
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setShortDescription($shortDescription)
+    {
+        $this->translate()->setShortDescription($shortDescription);
+        return $this;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function getTranslationEntityClass()
+    {
+        return get_class().'Translation';
     }
 }

@@ -34,6 +34,7 @@ Feature: Checkout usage limited promotions
           | Sarge   | 25    | Debian T-Shirts |
           | Etch    | 20    | Debian T-Shirts |
           | Lenny   | 15    | Debian T-Shirts |
+        And there is default currency configured
 
     Scenario: Promotion with usage limit is applied when the
               number of usage is not reached
@@ -41,7 +42,7 @@ Feature: Checkout usage limited promotions
          When I add product "Buzz" to cart, with quantity "2"
          Then I should be on the cart summary page
           And "Promotion total: -€500.00" should appear on the page
-          And "Grand total: €500.00" should appear on the page
+          And "Grand total: €0.00" should appear on the page
 
     Scenario: Promotion with usage limit is not applied when the
               number of usage is reached

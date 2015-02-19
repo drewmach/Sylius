@@ -5,7 +5,8 @@ Feature: Orders management
     I want to be able to list, view, edit and create orders
 
     Background:
-        Given I am logged in as administrator
+        Given there is default currency configured
+          And I am logged in as administrator
           And the following zones are defined:
             | name         | type    | members                       |
             | German lands | country | Germany, Austria, Switzerland |
@@ -117,3 +118,8 @@ Feature: Orders management
     Scenario: Displaying correct tax total on order page
         Given I am viewing order with number "000000002"
          Then I should see "Tax total: €10.58"
+
+    Scenario: Sorting order table by appropriate column
+        Given I am on the order index page
+         When I follow "User"
+         Then I should see table of orders sorted by lastName

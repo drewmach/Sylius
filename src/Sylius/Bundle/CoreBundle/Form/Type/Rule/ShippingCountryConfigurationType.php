@@ -22,14 +22,21 @@ use Symfony\Component\OptionsResolver\OptionsResolverInterface;
  */
 class ShippingCountryConfigurationType extends AbstractType
 {
+    /**
+     * @var array
+     */
     protected $validationGroups;
+
+    /**
+     * @var string
+     */
     protected $dataClass;
 
     /**
-     * @param array  $validationGroups Array of validation groups
      * @param string $dataClass        Class of Country model
+     * @param array  $validationGroups Array of validation groups
      */
-    public function __construct(array $validationGroups, $dataClass)
+    public function __construct($dataClass, array $validationGroups)
     {
         $this->validationGroups = $validationGroups;
         $this->dataClass        = $dataClass;
@@ -46,18 +53,6 @@ class ShippingCountryConfigurationType extends AbstractType
                 'empty_value' => 'sylius.form.country.select',
                 'class'       => $this->dataClass,
                 'identifier'  => 'id',
-            ))
-        ;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function setDefaultOptions(OptionsResolverInterface $resolver)
-    {
-        $resolver
-            ->setDefaults(array(
-                'validation_groups' => $this->validationGroups,
             ))
         ;
     }

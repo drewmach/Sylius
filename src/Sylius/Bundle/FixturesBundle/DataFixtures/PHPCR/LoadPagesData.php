@@ -12,10 +12,8 @@
 namespace Sylius\Bundle\FixturesBundle\DataFixtures\PHPCR;
 
 use Doctrine\Common\Persistence\ObjectManager;
-use Faker\Factory as FakerFactory;
 use PHPCR\Util\NodeHelper;
 use Sylius\Bundle\FixturesBundle\DataFixtures\DataFixture;
-use Symfony\Cmf\Bundle\RoutingBundle\Doctrine\Phpcr\Route;
 
 class LoadPagesData extends DataFixture
 {
@@ -35,10 +33,11 @@ class LoadPagesData extends DataFixture
         NodeHelper::createPath($session, $basepath);
 
         $parent = $manager->find(null, $basepath);
-        $repository = $this->container->get('sylius.repository.page');
+        $repository = $this->container->get('sylius.repository.static_content');
+        $routeRepository = $this->container->get('sylius.repository.route');
 
         // Terms of service.
-        $route = new Route();
+        $route = $routeRepository->createNew();
         $route->setPosition($routeRoot, 'terms-of-service');
         $manager->persist($route);
 
@@ -52,7 +51,7 @@ class LoadPagesData extends DataFixture
         $manager->persist($content);
 
         // Contact.
-        $route = new Route();
+        $route = $routeRepository->createNew();
         $route->setPosition($routeRoot, 'about');
         $manager->persist($route);
 

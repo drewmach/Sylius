@@ -30,17 +30,21 @@ sylius:
       code: Kód
       enabled: Povolené
     order_filter:
-      created_at_from: Od
-      created_at_to: Do
+      created_at_from: Vytvorené po
+      created_at_to: Vytvorené pred
       number: Číslo
       total_from: Od
       total_to: Do
+      payment_state: Stav platby
     page:
       body: Obsah
       id: ID
       title: Názov
     product:
+      shipping_category: Prepravná kategória
       short_description: Krátky popis
+      tax_category: Daňová kategória
+      variant_selection_method: Metóda výberu variantu
     product_filter:
       name: Názov
       sku: Kód
@@ -50,6 +54,9 @@ sylius:
         locale: Jazyk
         meta_description: Meta popis
         meta_keywords: Meta kľúčové slová
+        title: Názov stránky
+      taxation:
+        default_tax_zone: Predvolené daňové pásmo
     shipment_filter:
       created_at_from: Od
       created_at_to: Do
@@ -72,7 +79,7 @@ sylius:
     user_filter:
       query: Vyhľadať
     variant:
-      available_on_demand: K dispozícii na objednávku
+      available_on_demand: Na objednávku
       depth: Hĺbka
       height: Výška
       images: Obrázky

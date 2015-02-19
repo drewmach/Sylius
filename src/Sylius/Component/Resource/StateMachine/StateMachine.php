@@ -11,7 +11,7 @@
 
 namespace Sylius\Component\Resource\StateMachine;
 
-use Finite\StateMachine\StateMachine as BaseStateMachine;
+use SM\StateMachine\StateMachine as BaseStateMachine;
 
 /**
  * Sylius State Machine
@@ -23,16 +23,27 @@ class StateMachine extends BaseStateMachine implements StateMachineInterface
     /**
      * @{inheritDoc}
      */
-    public function getTransitionToState($toState, $fromState = null)
+    public function getTransitionFromState($fromState)
     {
-        if (null === $fromState) {
-            $fromState = $this->getCurrentState()->getName();
+        foreach ($this->getPossibleTransitions() as $transition) {
+            $config = $this->config['transitions'][$transition];
+            if (in_array($fromState, $config['from'])) {
+                return $transition;
+            }
         }
 
-        foreach ($this->getTransitions() as $transitionName) {
-            $transition = $this->getTransition($transitionName);
-            if (in_array($fromState, $transition->getInitialStates()) && $toState === $transition->getState()) {
-                return $transition->getName();
+        return null;
+    }
+
+    /**
+     * @{inheritDoc}
+     */
+    public function getTransitionToState($toState)
+    {
+        foreach ($this->getPossibleTransitions() as $transition) {
+            $config = $this->config['transitions'][$transition];
+            if ($toState === $config['to']) {
+                return $transition;
             }
         }
 

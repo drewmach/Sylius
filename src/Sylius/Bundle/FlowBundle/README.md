@@ -85,7 +85,7 @@ class DeliveryStep extends ContainerAwareStep
         $request = $context->getRequest();
         $form = $this->createAddressForm();
 
-        if ($request->isMethod('POST') && $form->bindRequest($request)->isValid()) {
+        if ($form->handleRequest($request)->isValid()) {
             $context->getStorage()->set('delivery.address', $form->getData());
             $context->complete(); // Complete step, user will be redirected to next step.
 
@@ -155,7 +155,7 @@ If you want to keep up with updates, [follow the official Sylius account on twit
 Bug tracking
 ------------
 
-This bundle uses [GitHub issues](https://github.com/Sylius/SyliusFlowBundle/issues).
+This bundle uses [GitHub issues](https://github.com/Sylius/Sylius/issues).
 If you have found bug, please create an issue.
 
 Versioning

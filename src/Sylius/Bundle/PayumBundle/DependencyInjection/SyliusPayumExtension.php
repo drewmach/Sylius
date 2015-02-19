@@ -14,13 +14,26 @@ namespace Sylius\Bundle\PayumBundle\DependencyInjection;
 use Sylius\Bundle\ResourceBundle\DependencyInjection\AbstractResourceExtension;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 
+/**
+ * Payum extension.
+ *
+ * @author Maksim Kotlyar
+ */
 class SyliusPayumExtension extends AbstractResourceExtension
 {
     /**
-     * {@inheritdoc}
+     * {@inheritDoc}
      */
     public function load(array $config, ContainerBuilder $container)
     {
-        $this->configure($config, new Configuration(), $container, self::CONFIGURE_LOADER | self::CONFIGURE_DATABASE | self::CONFIGURE_PARAMETERS);
+        list($config) = $this->configure(
+            $config,
+            new Configuration(),
+            $container,
+            self::CONFIGURE_LOADER | self::CONFIGURE_DATABASE | self::CONFIGURE_PARAMETERS
+        );
+
+        $container->setParameter('payum.template.layout', $config['template']['layout']);
+        $container->setParameter('payum.template.obtain_credit_card', $config['template']['obtain_credit_card']);
     }
 }

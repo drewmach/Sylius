@@ -11,39 +11,32 @@
 
 namespace Sylius\Bundle\VariationBundle;
 
-use Doctrine\Bundle\DoctrineBundle\DependencyInjection\Compiler\DoctrineOrmMappingsPass;
+use Sylius\Bundle\ResourceBundle\AbstractResourceBundle;
 use Sylius\Bundle\ResourceBundle\SyliusResourceBundle;
-use Symfony\Component\DependencyInjection\ContainerBuilder;
-use Symfony\Component\HttpKernel\Bundle\Bundle;
 
 /**
  * Bundle for managing object options and variants.
  *
  * @author Paweł Jędrzejewski <pawel@sylius.org>
+ * @author Gonzalo Vilaseca <gvilaseca@reiss.co.uk>
  */
-class SyliusVariationBundle extends Bundle
+class SyliusVariationBundle extends AbstractResourceBundle
 {
     /**
-     * Return array with currently supported drivers.
-     *
-     * @return array
+     * {@inheritdoc}
      */
     public static function getSupportedDrivers()
     {
         return array(
-            SyliusResourceBundle::DRIVER_DOCTRINE_ORM
+            SyliusResourceBundle::DRIVER_DOCTRINE_ORM,
         );
     }
 
     /**
      * {@inheritdoc}
      */
-    public function build(ContainerBuilder $container)
+    protected function getModelNamespace()
     {
-        $mappings = array(
-            realpath(__DIR__ . '/Resources/config/doctrine/model') => 'Sylius\Component\Variation\Model',
-        );
-
-        $container->addCompilerPass(DoctrineOrmMappingsPass::createXmlMappingDriver($mappings, array('doctrine.orm.entity_manager'), 'sylius_variation.driver.doctrine/orm'));
+        return 'Sylius\Component\Variation\Model';
     }
 }

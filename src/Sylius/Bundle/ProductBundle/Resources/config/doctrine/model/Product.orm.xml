@@ -19,32 +19,32 @@
             <generator strategy="AUTO" />
         </id>
 
-        <field name="name" column="name" type="string">
+        <field name="availableOn" column="available_on" type="datetime">
             <gedmo:versioned />
         </field>
-        <field name="slug" column="slug" type="string" unique="true">
-            <gedmo:slug fields="name" unique="true" />
-        </field>
-        <field name="description" column="description" type="text">
-            <gedmo:versioned />
-        </field>
-        <field name="availableOn" column="available_on" type="datetime" />
-        <field name="metaKeywords" column="meta_keywords" type="string" nullable="true" />
-        <field name="metaDescription" column="meta_description" type="string" nullable="true" />
+
+        <many-to-one field="archetype" target-entity="Sylius\Component\Product\Model\ArchetypeInterface">
+            <join-column name="archetype_id" referenced-column-name="id" nullable="true" />
+        </many-to-one>
 
         <one-to-many field="attributes" target-entity="Sylius\Component\Product\Model\AttributeValueInterface" mapped-by="subject" orphan-removal="true">
             <cascade>
                 <cascade-all />
             </cascade>
+            <gedmo:versioned />
         </one-to-many>
 
-        <one-to-many field="variants" target-entity="Sylius\Component\Product\Model\VariantInterface" mapped-by="object">
+        <one-to-many field="variants" target-entity="Sylius\Component\Product\Model\VariantInterface" mapped-by="object" orphan-removal="true">
             <cascade>
                 <cascade-all />
             </cascade>
+            <gedmo:versioned />
         </one-to-many>
 
         <many-to-many field="options" target-entity="Sylius\Component\Product\Model\OptionInterface">
+            <cascade>
+                <cascade-persist />
+            </cascade>
             <join-table name="sylius_product_options">
                 <join-columns>
                     <join-column name="product_id" referenced-column-name="id" nullable="false" unique="false" on-delete="CASCADE" />
@@ -58,6 +58,7 @@
         <field name="createdAt" column="created_at" type="datetime">
             <gedmo:timestampable on="create"/>
         </field>
+
         <field name="updatedAt" column="updated_at" type="datetime" nullable="true">
             <gedmo:timestampable on="update"/>
         </field>

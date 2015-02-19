@@ -22,6 +22,7 @@ use Sylius\Component\Taxation\Model\TaxCategoryInterface;
  * Default assortment products to play with Sylius.
  *
  * @author Paweł Jędrzejewski <pawel@sylius.org>
+ * @author Gonzalo Vilaseca <gvilaseca@reiss.co.uk>
  */
 class LoadProductsData extends DataFixture
 {
@@ -33,24 +34,10 @@ class LoadProductsData extends DataFixture
     private $totalVariants = 0;
 
     /**
-     * SKU collection.
-     *
-     * @var array
-     */
-    private $skus = array();
-
-    /**
-     * @var string
-     */
-    private $productAttributeClass;
-
-    /**
      * {@inheritdoc}
      */
     public function load(ObjectManager $manager)
     {
-        $this->productAttributeClass = $this->container->getParameter('sylius.model.product_attribute.class');
-
         // T-Shirts...
         for ($i = 1; $i <= 120; $i++) {
             switch (rand(0, 3)) {
@@ -100,14 +87,19 @@ class LoadProductsData extends DataFixture
     {
         $product = $this->createProduct();
         $product->setTaxCategory($this->getTaxCategory('Taxable goods'));
-        $product->setName(sprintf('T-Shirt "%s"', $this->faker->word));
-        $product->setDescription($this->faker->paragraph);
-        $product->setShortDescription($this->faker->sentence);
+
+        $translatedNames = array(
+            $this->defaultLocale =>sprintf('T-Shirt "%s"', $this->faker->word),
+            'es' => sprintf('Camiseta "%s"', $this->fakers['es']->word),
+        );
+        $this->addTranslatedFields($product, $translatedNames);
+
         $product->setVariantSelectionMethod(ProductInterface::VARIANT_SELECTION_MATCH);
 
         $this->addMasterVariant($product);
 
         $this->setTaxons($product, array('T-Shirts', 'SuperTees'));
+        $product->setArchetype($this->getReference('Sylius.Archetype.t_shirt'));
 
         // T-Shirt brand.
         $randomBrand = $this->faker->randomElement(array('Nike', 'Adidas', 'Puma', 'Potato'));
@@ -126,7 +118,7 @@ class LoadProductsData extends DataFixture
 
         $this->generateVariants($product);
 
-        $this->setReference('Sylius.Product-'.$i, $product);
+        $this->setReference('Sylius.Product.'.$i, $product);
 
         return $product;
     }
@@ -143,14 +135,20 @@ class LoadProductsData extends DataFixture
         $product = $this->createProduct();
 
         $product->setTaxCategory($this->getTaxCategory('Taxable goods'));
-        $product->setName(sprintf('Sticker "%s"', $this->faker->word));
-        $product->setDescription($this->faker->paragraph);
-        $product->setShortDescription($this->faker->sentence);
+
+        $translatedNames = array(
+            $this->defaultLocale => sprintf('Sticker "%s"', $this->faker->word),
+            'es' => sprintf('Pegatina "%s"', $this->fakers['es']->word),
+        );
+        $this->addTranslatedFields($product, $translatedNames);
+
+
         $product->setVariantSelectionMethod(ProductInterface::VARIANT_SELECTION_MATCH);
 
         $this->addMasterVariant($product);
 
         $this->setTaxons($product, array('Stickers', 'Stickypicky'));
+        $product->setArchetype($this->getReference('Sylius.Archetype.sticker'));
 
         // Sticker resolution.
         $randomResolution = $this->faker->randomElement(array('Waka waka', 'FULL HD', '300DPI', '200DPI'));
@@ -181,13 +179,17 @@ class LoadProductsData extends DataFixture
         $product = $this->createProduct();
 
         $product->setTaxCategory($this->getTaxCategory('Taxable goods'));
-        $product->setName(sprintf('Mug "%s"', $this->faker->word));
-        $product->setDescription($this->faker->paragraph);
-        $product->setShortDescription($this->faker->sentence);
+
+        $translatedNames = array(
+            $this->defaultLocale => sprintf('Mug "%s"', $this->faker->word),
+            'es' => sprintf('Taza "%s"', $this->fakers['es']->word),
+        );
+        $this->addTranslatedFields($product, $translatedNames);
 
         $this->addMasterVariant($product);
 
         $this->setTaxons($product, array('Mugs', 'Mugland'));
+        $product->setArchetype($this->getReference('Sylius.Archetype.mug'));
 
         $randomMugMaterial = $this->faker->randomElement(array('Invisible porcelain', 'Banana skin', 'Porcelain', 'Sand'));
         $this->addAttribute($product, 'Mug material', $randomMugMaterial);
@@ -216,13 +218,17 @@ class LoadProductsData extends DataFixture
         $isbn = $this->getUniqueISBN();
 
         $product->setTaxCategory($this->getTaxCategory('Taxable goods'));
-        $product->setName(sprintf('Book "%s" by "%s"', ucfirst($this->faker->word), $author));
-        $product->setDescription($this->faker->paragraph);
-        $product->setShortDescription($this->faker->sentence);
+
+        $translatedNames = array(
+            $this->defaultLocale => sprintf('Book "%s" by "%s"', ucfirst($this->faker->word), $author),
+            'es' => sprintf('Libro "%s" de "%s"', ucfirst($this->fakers['es']->word), $author)
+        );
+        $this->addTranslatedFields($product, $translatedNames);
 
         $this->addMasterVariant($product, $isbn);
 
         $this->setTaxons($product, array('Books', 'Bookmania'));
+        $product->setArchetype($this->getReference('Sylius.Archetype.book'));
 
         $this->addAttribute($product, 'Book author', $author);
         $this->addAttribute($product, 'Book ISBN', $isbn);
@@ -341,13 +347,7 @@ class LoadProductsData extends DataFixture
      */
     protected function getUniqueSku($length = 5)
     {
-        do {
-            $sku = $this->faker->randomNumber($length);
-        } while (in_array($sku, $this->skus));
-
-        $this->skus[] = $sku;
-
-        return $sku;
+        return $this->faker->unique()->randomNumber($length);
     }
 
     /**
@@ -357,7 +357,7 @@ class LoadProductsData extends DataFixture
      */
     protected function getUniqueISBN()
     {
-        return $this->getUniqueSku(13);
+        return $this->faker->unique()->uuid();
     }
 
     /**
@@ -376,5 +376,20 @@ class LoadProductsData extends DataFixture
     protected function defineTotalVariants()
     {
         define('SYLIUS_FIXTURES_TOTAL_VARIANTS', $this->totalVariants);
+    }
+
+    private function addTranslatedFields(ProductInterface $product, $translatedNames)
+    {
+        foreach ($translatedNames as $locale => $name) {
+            $product->setCurrentLocale($locale);
+
+            $product->setName($name);
+            $product->setDescription($this->fakers[$locale]->paragraph);
+            $product->setShortDescription($this->fakers[$locale]->sentence);
+            $product->setMetaKeywords(str_replace(' ', ', ', $this->fakers[$locale]->sentence));
+            $product->setMetaDescription($this->fakers[$locale]->sentence);
+        }
+
+        $product->setCurrentLocale($this->defaultLocale);
     }
 }

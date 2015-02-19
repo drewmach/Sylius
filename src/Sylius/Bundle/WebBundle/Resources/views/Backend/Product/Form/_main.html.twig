@@ -1,10 +1,7 @@
-{% form_theme form 'SyliusWebBundle::forms.html.twig' %}
+{% form_theme form 'SyliusWebBundle:Backend:forms.html.twig' %}
 
 <div class="tab-pane active" id="main">
-    {{ form_row(form.name, {'attr': {'class': 'input-lg'}}) }}
-    {{ form_row(form.description, {'attr': {'class': 'input-lg', 'rows': 10}}) }}
-    {{ form_row(form.shortDescription, {'attr': {'class': 'input-lg', 'rows': 3}}) }}
-    {{ form_row(form.masterVariant.sku) }}
+    {{ form_row(form.translations, {'attr': {'class': 'input-lg'}}) }}
     <hr />
     <div class="row">
         <div class="col-md-6">
@@ -15,9 +12,18 @@
             <hr />
             {{ form_row(form.masterVariant.price) }}
             {{ form_row(form.masterVariant.pricingCalculator) }}
+
             {% if form.masterVariant.pricingConfiguration is defined %}
-            {{ form_row(form.masterVariant.pricingConfiguration) }}
+                {% if form.masterVariant.pricingCalculator.vars.value == 'volume_based' %}
+                    <div>
+                        {{ form_label(form.masterVariant.pricingConfiguration) }}
+                        {% include "SyliusWebBundle::Backend/Product/Form/_volume_based_config.html.twig" %}
+                    </div>
+                {% else %}
+                    {{ form_row(form.masterVariant.pricingConfiguration) }}
+                {% endif %}
             {% endif %}
+
             <hr />
             {{ form_row(form.taxCategory) }}
             {{ form_row(form.shippingCategory) }}

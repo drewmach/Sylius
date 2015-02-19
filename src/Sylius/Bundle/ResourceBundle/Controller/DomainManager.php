@@ -12,7 +12,7 @@
 namespace Sylius\Bundle\ResourceBundle\Controller;
 
 use Doctrine\Common\Persistence\ObjectManager;
-use Sylius\Bundle\ResourceBundle\Event\ResourceEvent;
+use Sylius\Component\Resource\Event\ResourceEvent;
 use Symfony\Component\EventDispatcher\Event;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\PropertyAccess\PropertyAccess;
@@ -21,6 +21,7 @@ use Symfony\Component\PropertyAccess\PropertyAccess;
  * Domain manager.
  *
  * @author Paweł Jędrzejewski <pjedrzejewski@sylius.pl>
+ * @author Gustavo Perdomo <gperdomor@gmail.com>
  */
 class DomainManager
 {
@@ -35,7 +36,7 @@ class DomainManager
     private $eventDispatcher;
 
     /**
-     * @var FlashHelper
+     * @var null|FlashHelper
      */
     private $flashHelper;
 
@@ -47,40 +48,45 @@ class DomainManager
     public function __construct(
         ObjectManager $manager,
         EventDispatcherInterface $eventDispatcher,
-        FlashHelper $flashHelper,
-        Configuration $config
+        Configuration $config,
+        FlashHelper $flashHelper = null
     ) {
         $this->manager = $manager;
         $this->eventDispatcher = $eventDispatcher;
-        $this->flashHelper = $flashHelper;
         $this->config = $config;
+        $this->flashHelper = $flashHelper;
     }
 
     /**
      * @param object $resource
      *
-     * @return object|null
+     * @return object|ResourceEvent|null
      */
     public function create($resource)
     {
-        /** @var ResourceEvent $event */
-        $event = $this->dispatchEvent('pre_create', new ResourceEvent($resource));
+        $eventName = $this->config->getEvent('create');
+        $event = $this->dispatchEvent(sprintf('pre_%s', $eventName), new ResourceEvent($resource));
 
         if ($event->isStopped()) {
-            $this->flashHelper->setFlash(
-                $event->getMessageType(),
-                $event->getMessage(),
-                $event->getMessageParameters()
-            );
+            if (null !== $this->flashHelper) {
+                $this->flashHelper->setFlash(
+                    $event->getMessageType(),
+                    $event->getMessage(),
+                    $event->getMessageParameters()
+                );
+            }
 
-            return null;
+            return $event;
         }
 
         $this->manager->persist($resource);
         $this->manager->flush();
-        $this->flashHelper->setFlash('success', 'create');
 
-        $this->dispatchEvent('post_create', new ResourceEvent($resource));
+        if (null !== $this->flashHelper) {
+            $this->flashHelper->setFlash('success', 'create');
+        }
+
+        $this->dispatchEvent(sprintf('post_%s', $eventName), new ResourceEvent($resource));
 
         return $resource;
     }
@@ -89,32 +95,43 @@ class DomainManager
      * @param object $resource
      * @param string $flash
      *
-     * @return object|null
+     * @return object|ResourceEvent|null
      */
     public function update($resource, $flash = 'update')
     {
-        /** @var ResourceEvent $event */
-        $event = $this->dispatchEvent('pre_update', new ResourceEvent($resource));
+        $eventName = $this->config->getEvent('update');
+        $event = $this->dispatchEvent(sprintf('pre_%s', $eventName), new ResourceEvent($resource));
 
         if ($event->isStopped()) {
-            $this->flashHelper->setFlash(
-                $event->getMessageType(),
-                $event->getMessage(),
-                $event->getMessageParameters()
-            );
+            if (null !== $this->flashHelper) {
+                $this->flashHelper->setFlash(
+                    $event->getMessageType(),
+                    $event->getMessage(),
+                    $event->getMessageParameters()
+                );
+            }
 
-            return null;
+            return $event;
         }
 
         $this->manager->persist($resource);
         $this->manager->flush();
-        $this->flashHelper->setFlash('success', $flash);
 
-        $this->dispatchEvent('post_update', new ResourceEvent($resource));
+        if (null !== $this->flashHelper) {
+            $this->flashHelper->setFlash('success', $flash);
+        }
+
+        $this->dispatchEvent(sprintf('post_%s', $eventName), new ResourceEvent($resource));
 
         return $resource;
     }
 
+    /**
+     * @param object $resource
+     * @param int    $movement
+     *
+     * @return object|ResourceEvent|null
+     */
     public function move($resource, $movement)
     {
         $position = $this->config->getSortablePosition();
@@ -133,28 +150,33 @@ class DomainManager
     /**
      * @param object $resource
      *
-     * @return object|null
+     * @return object|ResourceEvent|null
      */
     public function delete($resource)
     {
-        /** @var ResourceEvent $event */
-        $event = $this->dispatchEvent('pre_delete', new ResourceEvent($resource));
+        $eventName = $this->config->getEvent('delete');
+        $event = $this->dispatchEvent(sprintf('pre_%s', $eventName), new ResourceEvent($resource));
 
         if ($event->isStopped()) {
-            $this->flashHelper->setFlash(
-                $event->getMessageType(),
-                $event->getMessage(),
-                $event->getMessageParameters()
-            );
+            if (null !== $this->flashHelper) {
+                $this->flashHelper->setFlash(
+                    $event->getMessageType(),
+                    $event->getMessage(),
+                    $event->getMessageParameters()
+                );
+            }
 
-            return null;
+            return $event;
         }
 
         $this->manager->remove($resource);
         $this->manager->flush();
-        $this->flashHelper->setFlash('success', 'delete');
 
-        $this->dispatchEvent('post_delete', new ResourceEvent($resource));
+        if (null !== $this->flashHelper) {
+            $this->flashHelper->setFlash('success', 'delete');
+        }
+
+        $this->dispatchEvent(sprintf('post_%s', $eventName), new ResourceEvent($resource));
 
         return $resource;
     }
@@ -163,7 +185,7 @@ class DomainManager
      * @param string $name
      * @param Event  $event
      *
-     * @return Event
+     * @return ResourceEvent
      */
     public function dispatchEvent($name, Event $event)
     {

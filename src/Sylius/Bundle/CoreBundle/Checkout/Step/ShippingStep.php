@@ -61,7 +61,7 @@ class ShippingStep extends CheckoutStep
 
         $form = $this->createCheckoutShippingForm($order);
 
-        if ($request->isMethod('POST') && $form->submit($request)->isValid()) {
+        if ($form->handleRequest($request)->isValid()) {
             $this->dispatchCheckoutEvent(SyliusCheckoutEvents::SHIPPING_PRE_COMPLETE, $order);
 
             $this->getManager()->persist($order);
@@ -77,7 +77,7 @@ class ShippingStep extends CheckoutStep
 
     protected function renderStep(ProcessContextInterface $context, OrderInterface $order, FormInterface $form)
     {
-        return $this->render('SyliusWebBundle:Frontend/Checkout/Step:shipping.html.twig', array(
+        return $this->render($this->container->getParameter(sprintf('sylius.checkout.step.%s.template', $this->getName())), array(
             'order'   => $order,
             'form'    => $form->createView(),
             'context' => $context,
@@ -93,9 +93,12 @@ class ShippingStep extends CheckoutStep
         }
 
         return $this->createForm('sylius_checkout_shipping', $order, array(
-            'criteria' => array('zone' => !empty($this->zones) ? array_map(function ($zone) {
-                return $zone->getId();
-            }, $this->zones) : null)
+            'criteria' => array(
+                'zone' => !empty($this->zones) ? array_map(function ($zone) {
+                    return $zone->getId();
+                }, $this->zones) : null,
+                'enabled' => true,
+            )
         ));
     }
 }

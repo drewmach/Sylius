@@ -11,48 +11,23 @@
 
 namespace Sylius\Bundle\ProductBundle\Form\Type;
 
-use Symfony\Component\Form\AbstractType;
+use Sylius\Bundle\ResourceBundle\Form\Type\AbstractResourceType;
 use Symfony\Component\Form\FormBuilderInterface;
-use Symfony\Component\OptionsResolver\OptionsResolverInterface;
 
 /**
  * Product form type.
  *
  * @author Paweł Jędrzejewski <pawel@sylius.org>
+ * @author Gonzalo Vilaseca <gvilaseca@reiss.co.uk>
  */
-class ProductType extends AbstractType
+class ProductType extends AbstractResourceType
 {
-    /**
-     * Validation groups.
-     *
-     * @var array
-     */
-    protected $validationGroups;
-
-    /**
-     * Constructor.
-     *
-     * @param string $dataClass
-     * @param array  $validationGroups
-     */
-    public function __construct($dataClass, array $validationGroups)
-    {
-        $this->dataClass = $dataClass;
-        $this->validationGroups = $validationGroups;
-    }
-
     /**
      * {@inheritdoc}
      */
     public function buildForm(FormBuilderInterface $builder, array $options)
     {
         $builder
-            ->add('name', 'text', array(
-                'label' => 'sylius.form.product.name'
-            ))
-            ->add('description', 'textarea', array(
-                'label' => 'sylius.form.product.description'
-            ))
             ->add('masterVariant', 'sylius_product_variant', array(
                 'master' => true,
             ))
@@ -67,27 +42,6 @@ class ProductType extends AbstractType
                 'required' => false,
                 'multiple' => true,
                 'label'    => 'sylius.form.product.options'
-            ))
-            ->add('metaKeywords', 'text', array(
-                'required' => false,
-                'label'    => 'sylius.form.product.meta_keywords'
-            ))
-            ->add('metaDescription', 'text', array(
-                'required' => false,
-                'label'    => 'sylius.form.product.meta_description'
-            ))
-        ;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function setDefaultOptions(OptionsResolverInterface $resolver)
-    {
-        $resolver
-            ->setDefaults(array(
-                'data_class'        => $this->dataClass,
-                'validation_groups' => $this->validationGroups
             ))
         ;
     }

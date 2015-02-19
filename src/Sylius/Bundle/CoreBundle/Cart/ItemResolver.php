@@ -111,11 +111,13 @@ class ItemResolver implements ItemResolverInterface
             throw new ItemResolvingException('Requested product was not found.');
         }
 
-        // We use forms to easily set the quantity and pick variant but you can do here whatever is required to create the item.
-        $form = $this->formFactory->create('sylius_cart_item', null, array('product' => $product));
+        if ($this->restrictedZoneChecker->isRestricted($product)) {
+            throw new ItemResolvingException('Selected item is not available in your country.');
+        }
 
+        // We use forms to easily set the quantity and pick variant but you can do here whatever is required to create the item.
+        $form = $this->formFactory->create('sylius_cart_item', $item, array('product' => $product));
         $form->submit($data);
-        $item = $form->getData();
 
         // If our product has no variants, we simply set the master variant of it.
         if (!$product->hasVariants()) {
@@ -149,10 +151,6 @@ class ItemResolver implements ItemResolverInterface
 
         if (!$this->availabilityChecker->isStockSufficient($variant, $quantity)) {
             throw new ItemResolvingException('Selected item is out of stock.');
-        }
-
-        if ($this->restrictedZoneChecker->isRestricted($product)) {
-            throw new ItemResolvingException('Selected item is not available in your country.');
         }
 
         return $item;

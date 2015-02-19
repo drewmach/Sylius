@@ -18,6 +18,7 @@ use Symfony\Component\DependencyInjection\Reference;
 /**
  * @author Paweł Jędrzejewski <pawel@sylius.org>
  * @author Arnaud Langlade <aRn0D.dev@gmail.com>
+ * @author Gonzalo Vilaseca <gvilaseca@reiss.co.uk>
  */
 class DoctrineORMDriver extends AbstractDatabaseDriver
 {
@@ -51,6 +52,12 @@ class DoctrineORMDriver extends AbstractDatabaseDriver
             $this->getClassMetadataDefinition($classes['model'])
         ));
 
+        if (isset($classes['translatable']['translatable_fields'])) {
+            // TODO add only to if instance of translatable repository?
+            $definition->addMethodCall('setTranslatableFields', array($classes['translatable']['translatable_fields']));
+            $definition->addMethodCall('setLocaleContext', array(new Reference('sylius.context.locale')));
+        }
+
         return $definition;
     }
 
@@ -59,7 +66,7 @@ class DoctrineORMDriver extends AbstractDatabaseDriver
      */
     protected function getManagerServiceKey()
     {
-        return 'doctrine.orm.entity_manager';
+        return sprintf('doctrine.orm.%s_entity_manager', $this->managerName);
     }
 
     /**

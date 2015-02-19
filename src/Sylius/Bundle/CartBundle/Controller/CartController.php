@@ -11,9 +11,9 @@
 
 namespace Sylius\Bundle\CartBundle\Controller;
 
-use Sylius\Bundle\CartBundle\Event\CartEvent;
-use Sylius\Bundle\CartBundle\Event\FlashEvent;
+use Sylius\Component\Cart\Event\CartEvent;
 use Sylius\Component\Cart\SyliusCartEvents;
+use Sylius\Component\Resource\Event\FlashEvent;
 use Symfony\Component\EventDispatcher\GenericEvent;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -39,10 +39,16 @@ class CartController extends Controller
         $cart = $this->getCurrentCart();
         $form = $this->createForm('sylius_cart', $cart);
 
-        return $this->render($this->config->getTemplate('summary.html'), array(
-            'cart' => $cart,
-            'form' => $form->createView()
-        ));
+        $view = $this
+            ->view()
+            ->setTemplate($this->config->getTemplate('summary.html'))
+            ->setData(array(
+                'cart' => $cart,
+                'form' => $form->createView()
+            ))
+        ;
+
+        return $this->handleView($view);
     }
 
     /**
@@ -61,7 +67,7 @@ class CartController extends Controller
         $cart = $this->getCurrentCart();
         $form = $this->createForm('sylius_cart', $cart);
 
-        if ($request->isMethod('POST') && $form->submit($request)->isValid()) {
+        if ($form->handleRequest($request)->isValid()) {
             $event = new CartEvent($cart);
             $event->isFresh(true);
 
@@ -78,10 +84,16 @@ class CartController extends Controller
             return $this->redirectToCartSummary();
         }
 
-        return $this->render($this->config->getTemplate('summary.html'), array(
-            'cart' => $cart,
-            'form' => $form->createView()
-        ));
+        $view = $this
+            ->view()
+            ->setTemplate($this->config->getTemplate('summary.html'))
+            ->setData(array(
+                'cart' => $cart,
+                'form' => $form->createView()
+            ))
+        ;
+
+        return $this->handleView($view);
     }
 
     /**

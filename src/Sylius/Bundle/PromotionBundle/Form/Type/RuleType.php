@@ -11,9 +11,9 @@
 
 namespace Sylius\Bundle\PromotionBundle\Form\Type;
 
-use Sylius\Bundle\PromotionBundle\Form\EventListener\BuildRuleFormListener;
-use Sylius\Component\Registry\ServiceRegistryInterface;
-use Symfony\Component\Form\AbstractType;
+use Sylius\Bundle\PromotionBundle\Form\EventListener\BuildRuleFormSubscriber;
+use Sylius\Bundle\PromotionBundle\Form\Type\Core\AbstractConfigurationType;
+use Sylius\Component\Promotion\Model\RuleInterface;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolverInterface;
 
@@ -21,40 +21,43 @@ use Symfony\Component\OptionsResolver\OptionsResolverInterface;
  * Promotion rule form type.
  *
  * @author Saša Stamenković <umpirsky@gmail.com>
+ * @author Arnaud Langlade <arn0d.dev@gmail.com>
  */
-class RuleType extends AbstractType
+class RuleType extends AbstractConfigurationType
 {
-    protected $dataClass;
-    protected $validationGroups;
-    protected $checkerRegistry;
-
-    public function __construct($dataClass, array $validationGroups, ServiceRegistryInterface $checkerRegistry)
-    {
-        $this->dataClass = $dataClass;
-        $this->validationGroups = $validationGroups;
-        $this->checkerRegistry = $checkerRegistry;
-    }
-
-    public function buildForm(FormBuilderInterface $builder, array $options)
+    /**
+     * {@inheritdoc}
+     */
+    public function buildForm(FormBuilderInterface $builder, array $options = array())
     {
         $builder
-            ->addEventSubscriber(new BuildRuleFormListener($this->checkerRegistry, $builder->getFormFactory()))
             ->add('type', 'sylius_promotion_rule_choice', array(
-                'label' => 'sylius.form.rule.type'
+                'label' => 'sylius.form.rule.type',
+                'attr' => array(
+                    'data-form-collection' => 'update',
+                ),
             ))
+            ->addEventSubscriber(
+                new BuildRuleFormSubscriber($this->registry, $builder->getFormFactory(), $options['configuration_type'])
+            )
         ;
     }
 
+    /**
+     * {@inheritdoc}
+     */
     public function setDefaultOptions(OptionsResolverInterface $resolver)
     {
-        $resolver
-            ->setDefaults(array(
-                'data_class'        => $this->dataClass,
-                'validation_groups' => $this->validationGroups,
-            ))
-        ;
+        parent::setDefaultOptions($resolver);
+
+        $resolver->setDefaults(array(
+            'configuration_type' => RuleInterface::TYPE_ITEM_TOTAL,
+        ));
     }
 
+    /**
+     * {@inheritdoc}
+     */
     public function getName()
     {
         return 'sylius_promotion_rule';

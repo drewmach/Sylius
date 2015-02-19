@@ -46,7 +46,7 @@ class SettingsController extends Controller
 
         $form->setData($settings);
 
-        if ($request->isMethod('POST') && $form->submit($request)->isValid()) {
+        if ($form->handleRequest($request)->isValid()) {
             $messageType = 'success';
             try {
                 $manager->saveSettings($namespace, $form->getData());
@@ -55,7 +55,7 @@ class SettingsController extends Controller
                 $message = $this->getTranslator()->trans($exception->getMessage(), array(), 'validators');
                 $messageType = 'error';
             }
-            $request->getSession()->getFlashBag()->add($messageType, $message);
+            $request->getSession()->getBag('flashes')->add($messageType, $message);
 
             if ($request->headers->has('referer')) {
                 return $this->redirect($request->headers->get('referer'));

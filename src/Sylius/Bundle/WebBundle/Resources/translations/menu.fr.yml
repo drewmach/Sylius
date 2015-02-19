@@ -23,7 +23,7 @@ sylius:
         products: Produits
         promotions: Promotions
         properties: Configurer les propriétés
-        prototypes: Prototypes de produits
+        archetypes: archetypes de produits
         sales: Commandes
         shipments: Expéditions
         shipping_categories: "Catégories d'expédition"
@@ -58,7 +58,7 @@ sylius:
         products: Produits
         promotions: Promotions
         properties: Configurer les propriétés
-        prototypes: Prototypes de produits
+        archetypes: archetypes de produits
         sales: Commandes
         shipments: Expéditions
         shipping_categories: "Catégories d'expédition"
@@ -83,7 +83,7 @@ sylius:
       main:
         account: Mon compte
         administration: Administration
-        cart: 'Voir panier (%items%) %total%'
+        cart: 'Panier (%items%) %total%'
         login: Connexion
         logout: Déconnexion
         register: Créer un compte

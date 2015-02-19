@@ -19,10 +19,17 @@ sylius:
       empty: Još uvek niste kreirali adresu.
       list: Sve vaše adrese
       update: Izmeni moju adresu
+    home:
+      email: ""
+      id: ""
     order:
       invoice: Faktura
+      number: ""
+      payment_mode: ""
       shipment:
         pending: Na čekanju
+      shipment_mode: ""
+      state: ""
       total: Ukupno
     title: Moj nalog
   add_to_cart: Dodaj u korpu
@@ -203,6 +210,7 @@ sylius:
     frontend_keywords: sylius, e-komerc, symfony2, prodavnica, korpa
     frontend_title: Sylius, moderni e-komerc za Symfony2
   newest: Najnoviji proizvodi
+  "no": false
   option:
     create: Kreirajte opciju
     create_header: Nova opcija proizvoda
@@ -382,7 +390,7 @@ sylius:
     type: tip
     update_header: Ažuriranje atributa
     updated_at: ažurirano
-  prototype:
+  archetype:
     build: Kreiraj prototip
     build_header: Kreirajte proizvod od prototipa
     create: Kreiraj prototip
@@ -509,7 +517,7 @@ sylius:
     price: Cena
     stock: Zalihe
     update_header: Ažuriranje varijante
-  "yes": da
+  "yes": true
   zone:
     add_member: Dodajte člana
     create: Kreirajte zonu

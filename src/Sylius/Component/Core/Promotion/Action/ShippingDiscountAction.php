@@ -11,63 +11,33 @@
 
 namespace Sylius\Component\Core\Promotion\Action;
 
+use Sylius\Component\Core\Model\AdjustmentInterface;
 use Sylius\Component\Core\Model\OrderInterface;
-use Sylius\Component\Promotion\Action\PromotionActionInterface;
 use Sylius\Component\Promotion\Model\PromotionInterface;
 use Sylius\Component\Promotion\Model\PromotionSubjectInterface;
-use Sylius\Component\Resource\Repository\RepositoryInterface;
+use Sylius\Component\Resource\Exception\UnexpectedTypeException;
 
 /**
  * Shipping discount action.
  *
  * @author Saša Stamenković <umpirsky@gmail.com>
  */
-class ShippingDiscountAction implements PromotionActionInterface
+class ShippingDiscountAction extends DiscountAction
 {
-    /**
-     * Adjustment repository.
-     *
-     * @var RepositoryInterface
-     */
-    protected $repository;
-
-    /**
-     * Constructor.
-     *
-     * @param RepositoryInterface $repository
-     */
-    public function __construct(RepositoryInterface $repository)
-    {
-        $this->repository = $repository;
-    }
-
     /**
      * {@inheritdoc}
      */
     public function execute(PromotionSubjectInterface $subject, array $configuration, PromotionInterface $promotion)
     {
         if (!$subject instanceof OrderInterface) {
-            throw new \InvalidArgumentException(sprintf(
-                '%s does not implement OrderInterface.',
-                get_class($subject)
-            ));
+            throw new UnexpectedTypeException($subject, 'Sylius\Component\Core\Model\OrderInterface');
         }
 
-        $adjustment = $this->repository->createNew();
-
-        $adjustment->setAmount(- $subject->getShippingTotal() * $configuration['percentage']);
-        $adjustment->setLabel(OrderInterface::PROMOTION_ADJUSTMENT);
-        $adjustment->setDescription($promotion->getDescription());
+        $adjustment = $this->createAdjustment($promotion);
+        $adjustmentAmount = (int) round($subject->getAdjustmentsTotal(AdjustmentInterface::SHIPPING_ADJUSTMENT) * $configuration['percentage']);
+        $adjustment->setAmount(- $adjustmentAmount);
 
         $subject->addAdjustment($adjustment);
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function revert(PromotionSubjectInterface $subject, array $configuration, PromotionInterface $promotion)
-    {
-        $subject->removePromotionAdjustments();
     }
 
     /**

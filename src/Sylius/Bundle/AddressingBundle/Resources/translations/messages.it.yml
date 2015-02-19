@@ -19,11 +19,16 @@ sylius:
       select: Scegli
     province:
       name: Nome
-      select: Scegli
+      select: Seleziona
     zone:
       members: Membri
       name: Nome
       type: Tipo
+      types:
+        country: Paese
+        province: Provincia
+        zone: Zona
+      scope: Ambito
     zone_member_country:
       country: Nazione
     zone_member_province:

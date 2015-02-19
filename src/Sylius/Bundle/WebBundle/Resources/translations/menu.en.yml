@@ -1,26 +1,33 @@
+# This file is part of the Sylius package.
+# (c) Paweł Jędrzejewski
+
 sylius:
     backend:
         menu:
             main:
                 assortment: Assortment
+                blocks: Blocks
                 configuration: Configuration
                 countries: Countries
                 customer: Customers
+                content: Content
                 dashboard: Dashboard
-                exchange_rates: Exchange rates
+                currencies: Currencies
                 general_settings: General settings
+                groups: Groups
                 homepage: Your store
                 locales: Locales
                 new_order: Add new order
                 new_promotion: Add new promotion
                 options: Manage product options
                 orders: Current orders
+                pages: Pages
                 payment_methods: Payment methods
                 payments: Payments
                 products: Products
                 promotions: Promotions
                 attributes: Configure attributes
-                prototypes: Product prototypes
+                archetypes: Product archetypes
                 sales: Orders
                 shipments: Shipments
                 shipping_categories: Shipping categories
@@ -32,7 +39,9 @@ sylius:
                 taxonomies: Categorization
                 users: Users
                 zones: Zones
+                emails: Emails
             sidebar:
+                api_clients: API clients
                 assortment: Assortment
                 blocks: Blocks
                 configuration: Configuration
@@ -40,7 +49,7 @@ sylius:
                 countries: Countries
                 customer: Customers
                 dashboard: Dashboard
-                exchange_rates: Exchange rates
+                currencies: Currencies
                 general_settings: General settings
                 groups: Groups
                 homepage: Back to frontend
@@ -50,16 +59,21 @@ sylius:
                 options: Manage options
                 orders: Current orders
                 pages: Pages
+                routes: Routes
+                redirects: Redirects
+                menus: Menus
                 payment_methods: Payment methods
                 payments: Payments
                 products: Products
                 promotions: Promotions
+                report: Reports
                 attributes: Configure attributes
-                prototypes: Product prototypes
+                archetypes: Product archetypes
                 sales: Orders
                 shipments: Shipments
                 shipping_categories: Shipping categories
                 shipping_methods: Shipping methods
+                slideshow: Slideshow
                 stockables: Inventory levels
                 tax_categories: Taxation categories
                 tax_rates: Tax rates
@@ -67,6 +81,7 @@ sylius:
                 taxonomies: Categorization
                 users: Users
                 zones: Zones
+                emails: Emails
     frontend:
         menu:
             account:
@@ -84,6 +99,8 @@ sylius:
                 login: Login
                 logout: Logout
                 register: Register
+            sidebar:
+                links: Links
             social:
                 facebook: Facebook
                 github: GitHub

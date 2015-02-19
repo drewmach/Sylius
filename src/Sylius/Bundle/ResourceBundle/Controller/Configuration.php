@@ -19,9 +19,15 @@ use Symfony\Component\HttpFoundation\Request;
  *
  * @author Paweł Jędrzejewski <pjedrzejewski@sylius.pl>
  * @author Saša Stamenković <umpirsky@gmail.com>
+ * @author Gustavo Perdomo <gperdomor@gmail.com>
  */
 class Configuration
 {
+    /**
+     * @var ParametersParser
+     */
+    protected $parser;
+
     /**
      * @var string
      */
@@ -43,14 +49,14 @@ class Configuration
     protected $templatingEngine;
 
     /**
-     * @var array
+     * @var Parameters
      */
     protected $parameters;
 
     /**
-     * @var ParametersParser
+     * @var array
      */
-    protected $parser;
+    protected $settings = array();
 
     /**
      * Current request.
@@ -64,15 +70,36 @@ class Configuration
         $bundlePrefix,
         $resourceName,
         $templateNamespace,
-        $templatingEngine = 'twig'
+        $templatingEngine = 'twig',
+        array $settings
     ) {
         $this->bundlePrefix = $bundlePrefix;
         $this->resourceName = $resourceName;
         $this->templateNamespace = $templateNamespace;
         $this->templatingEngine = $templatingEngine;
+        $this->settings = $settings;
         $this->parser = $parser;
+        $this->parameters = new Parameters();
     }
 
+    /**
+     * @return Parameters
+     */
+    public function getParameters()
+    {
+        return $this->parameters;
+    }
+
+    public function setParameters(Parameters $parameters)
+    {
+        $this->parameters = $parameters;
+
+        return $this;
+    }
+
+    /**
+     * @return Request
+     */
     public function getRequest()
     {
         return $this->request;
@@ -82,10 +109,7 @@ class Configuration
     {
         $this->request = $request;
 
-        $parameters = $request->attributes->get('_sylius', array());
-        $this->parser->parse($parameters, $request);
-
-        $this->parameters = $parameters;
+        return $this;
     }
 
     public function getBundlePrefix()
@@ -115,7 +139,7 @@ class Configuration
 
     public function isApiRequest()
     {
-        return 'html' !== $this->request->getRequestFormat();
+        return null !== $this->request && 'html' !== $this->request->getRequestFormat();
     }
 
     public function getServiceName($service)
@@ -135,12 +159,12 @@ class Configuration
 
     public function getTemplate($name)
     {
-        return $this->get('template', $this->getTemplateName($name));
+        return $this->parameters->get('template', $this->getTemplateName($name));
     }
 
     public function getFormType()
     {
-        return $this->get('form', sprintf('%s_%s', $this->bundlePrefix, $this->resourceName));
+        return $this->parameters->get('form', sprintf('%s_%s', $this->bundlePrefix, $this->resourceName));
     }
 
     public function getRouteName($name)
@@ -150,17 +174,59 @@ class Configuration
 
     public function getRedirectRoute($name)
     {
-        $redirect = $this->get('redirect');
+        $redirect = $this->parameters->get('redirect');
 
         if (null === $redirect) {
             return $this->getRouteName($name);
         }
 
         if (is_array($redirect)) {
+            if (!empty($redirect['referer'])) {
+                return 'referer';
+            }
+
             return $redirect['route'];
         }
 
         return $redirect;
+    }
+
+    /**
+     * Get url hash fragment (#text) which is you configured.
+     *
+     * @return null|string
+     */
+    public function getRedirectHash()
+    {
+        $redirect = $this->parameters->get('redirect');
+
+        if (!is_array($redirect) || empty($redirect['hash'])) {
+            return null;
+        }
+
+        return '#' . $redirect['hash'];
+    }
+
+    /**
+     * Get redirect referer, This will detected by configuration
+     * If not exists, The `referrer` from headers will be used.
+     *
+     * @return null|string
+     */
+    public function getRedirectReferer()
+    {
+        $redirect = $this->parameters->get('redirect');
+        $referer = $this->request->headers->get('referer');
+
+        if (!is_array($redirect) || empty($redirect['referer'])) {
+            return $referer;
+        }
+
+        if ($redirect['referer'] === true) {
+            return $referer;
+        }
+
+        return $redirect['referer'];
     }
 
     /**
@@ -170,9 +236,9 @@ class Configuration
      */
     public function getRedirectParameters($resource = null)
     {
-        $redirect = $this->get('redirect');
+        $redirect = $this->parameters->get('redirect');
 
-        if (null === $redirect || !is_array($redirect)) {
+        if (!is_array($redirect) || empty($redirect['parameters'])) {
             $redirect = array('parameters' => array());
         }
 
@@ -185,38 +251,42 @@ class Configuration
         return $parameters;
     }
 
+    public function isLimited()
+    {
+        return (bool) $this->parameters->get('limit', $this->settings['limit']);
+    }
+
     public function getLimit()
     {
-        $limit = $this->get('limit', 10);
-
-        if (false === $limit) {
-            return null;
+        $limit = null;
+        if ($this->isLimited()) {
+            $limit = (int) $this->parameters->get('limit', $this->settings['limit']);
         }
 
-        return (int) $limit;
+        return $limit;
     }
 
     public function isPaginated()
     {
-        return (Boolean) $this->get('paginate', true);
+        return (bool) $this->parameters->get('paginate', $this->settings['default_page_size']);
     }
 
     public function getPaginationMaxPerPage()
     {
-        return (int) $this->get('paginate', 10);
+        return (int) $this->parameters->get('paginate', $this->settings['default_page_size']);
     }
 
     public function isFilterable()
     {
-        return (Boolean) $this->get('filterable', false);
+        return (bool) $this->parameters->get('filterable', $this->settings['filterable']);
     }
 
-    public function getCriteria($default = array())
+    public function getCriteria(array $criteria = array())
     {
-        $defaultCriteria = array_merge($this->get('criteria', array()), $default);
+        $defaultCriteria = array_merge($this->parameters->get('criteria', array()), $criteria);
 
         if ($this->isFilterable()) {
-            return array_merge($defaultCriteria, $this->request->get('criteria', array()));
+            return $this->getRequestParameter('criteria', $defaultCriteria);
         }
 
         return $defaultCriteria;
@@ -224,40 +294,48 @@ class Configuration
 
     public function isSortable()
     {
-        return (Boolean) $this->get('sortable', false);
+        return (bool) $this->parameters->get('sortable', $this->settings['sortable']);
     }
 
-    public function getSorting()
+    public function getSorting(array $sorting = array())
     {
-        $defaultSorting = $this->get('sorting', array());
+        $defaultSorting = array_merge($this->parameters->get('sorting', array()), $sorting);
 
         if ($this->isSortable()) {
-            return array_merge($defaultSorting, $this->request->get('sorting', array()));
+            return $this->getRequestParameter('sorting', $defaultSorting);
         }
 
         return $defaultSorting;
     }
 
+    public function getRequestParameter($parameter, $defaults = array())
+    {
+        return array_replace_recursive(
+            $defaults,
+            $this->request->get($parameter, array())
+        );
+    }
+
     public function getMethod($default)
     {
-        return $this->get('method', $default);
+        return $this->parameters->get('method', $default);
     }
 
     public function getArguments(array $default = array())
     {
-        return $this->get('arguments', $default);
+        return $this->parameters->get('arguments', $default);
     }
 
     public function getFactoryMethod($default)
     {
-        $factory = $this->get('factory', array('method' => $default));
+        $factory = $this->parameters->get('factory', array('method' => $default));
 
         return is_array($factory) ? $factory['method'] : $factory;
     }
 
     public function getFactoryArguments(array $default = array())
     {
-        $factory = $this->get('factory', array());
+        $factory = $this->parameters->get('factory', array());
 
         return isset($factory['arguments']) ? $factory['arguments'] : $default;
     }
@@ -266,16 +344,26 @@ class Configuration
     {
         $message = sprintf('%s.%s.%s', $this->bundlePrefix, $this->resourceName, $message);
 
-        return $this->get('flash', $message);
+        return $this->parameters->get('flash', $message);
     }
 
     public function getSortablePosition()
     {
-        return $this->get('sortable_position', 'position');
+        return $this->parameters->get('sortable_position', 'position');
     }
 
-    protected function get($parameter, $default = null)
+    public function getSerializationGroups()
     {
-        return isset($this->parameters[$parameter]) ? $this->parameters[$parameter] : $default;
+        return $this->parameters->get('serialization_groups', array());
+    }
+
+    public function getSerializationVersion()
+    {
+        return $this->parameters->get('serialization_version');
+    }
+
+    public function getEvent($default = null)
+    {
+        return $this->parameters->get('event', $default);
     }
 }

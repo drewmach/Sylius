@@ -11,44 +11,17 @@
 
 namespace Sylius\Bundle\PaymentBundle\Form\Type;
 
+use Sylius\Bundle\ResourceBundle\Form\Type\AbstractResourceType;
 use Sylius\Component\Payment\Model\PaymentInterface;
-use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\FormBuilderInterface;
-use Symfony\Component\OptionsResolver\OptionsResolverInterface;
 
 /**
  * Payment form type.
  *
  * @author Paweł Jędrzejewski <pawel@sylius.org>
  */
-class PaymentType extends AbstractType
+class PaymentType extends AbstractResourceType
 {
-    /**
-     * Data class.
-     *
-     * @var string
-     */
-    protected $dataClass;
-
-    /**
-     * Validation groups.
-     *
-     * @var array
-     */
-    protected $validationGroups;
-
-    /**
-     * Constructor.
-     *
-     * @param string $dataClass
-     * @param array  $validationGroups
-     */
-    public function __construct($dataClass, array $validationGroups)
-    {
-        $this->dataClass = $dataClass;
-        $this->validationGroups = $validationGroups;
-    }
-
     /**
      * {@inheritdoc}
      */
@@ -62,7 +35,7 @@ class PaymentType extends AbstractType
                 'label' => 'sylius.form.payment.amount'
             ))
             ->add('state', 'choice', array(
-                'label'   => 'sylius.form.payment.state',
+                'label'   => 'sylius.form.payment.state.header',
                 'choices' => array(
                     PaymentInterface::STATE_PROCESSING => 'sylius.form.payment.state.processing',
                     PaymentInterface::STATE_PENDING    => 'sylius.form.payment.state.pending',
@@ -72,21 +45,8 @@ class PaymentType extends AbstractType
                     PaymentInterface::STATE_NEW        => 'sylius.form.payment.state.new',
                     PaymentInterface::STATE_CANCELLED  => 'sylius.form.payment.state.cancelled',
                     PaymentInterface::STATE_REFUNDED   => 'sylius.form.payment.state.refunded',
-                    PaymentInterface::STATE_UNKNOWN    => 'sylius.form.payment.state.unknown'
+                    PaymentInterface::STATE_UNKNOWN    => 'sylius.form.payment.state.unknown',
                 )
-            ))
-        ;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function setDefaultOptions(OptionsResolverInterface $resolver)
-    {
-        $resolver
-            ->setDefaults(array(
-                'data_class'        => $this->dataClass,
-                'validation_groups' => $this->validationGroups,
             ))
         ;
     }

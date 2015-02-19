@@ -10,20 +10,28 @@ sylius:
       first_name: Vorname
       last_name: Nachname
       postcode: Postleitzahl
-      street: Straße
-      province: Region
+      street: Strasse / Nr.
+      province: Kanton
     country:
       iso_name: ISO Name
-      provinces: Bundesland
+      name: Name
+      provinces: Kantone
       select: Auswählen
     province:
+      name: Name
       select: Auswählen
     zone:
       members: Mitglieder
+      name: Name
       type: Typ
+      types:
+        country: Land
+        province: Kanton
+        zone: Zone
+      scope: Umfang
     zone_member_country:
       country: Land
     zone_member_province:
-      province: Bundesland
+      province: Kanton
     zone_member_zone:
-      zone: Bereich
+      zone: Zone

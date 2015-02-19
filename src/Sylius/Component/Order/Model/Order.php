@@ -52,7 +52,7 @@ class Order implements OrderInterface
     /**
      * Items total.
      *
-     * @var integer
+     * @var int
      */
     protected $itemsTotal = 0;
 
@@ -64,9 +64,23 @@ class Order implements OrderInterface
     protected $adjustments;
 
     /**
+     * Comments.
+     *
+     * @var Collection|CommentInterface[]
+     */
+    protected $comments;
+
+    /**
+     * Order identities.
+     *
+     * @var Collection|IdentityInterface[]
+     */
+    protected $identities;
+
+    /**
      * Adjustments total.
      *
-     * @var integer
+     * @var int
      */
     protected $adjustmentsTotal = 0;
 
@@ -74,14 +88,14 @@ class Order implements OrderInterface
      * Calculated total.
      * Items total + adjustments total.
      *
-     * @var integer
+     * @var int
      */
     protected $total = 0;
 
     /**
      * Whether order was confirmed.
      *
-     * @var Boolean
+     * @var bool
      */
     protected $confirmed = true;
 
@@ -114,11 +128,18 @@ class Order implements OrderInterface
     protected $deletedAt;
 
     /**
-     * State
+     * Order state.
      *
-     * @var integer
+     * @var string
      */
     protected $state = OrderInterface::STATE_CART;
+
+    /**
+     * Customer email.
+     *
+     * @var string
+     */
+    protected $email;
 
     /**
      * Constructor.
@@ -127,6 +148,8 @@ class Order implements OrderInterface
     {
         $this->items = new ArrayCollection();
         $this->adjustments = new ArrayCollection();
+        $this->comments = new ArrayCollection();
+        $this->identities = new ArrayCollection();
         $this->createdAt = new \DateTime();
     }
 
@@ -136,6 +159,24 @@ class Order implements OrderInterface
     public function getId()
     {
         return $this->id;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getEmail()
+    {
+        return $this->email;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setEmail($email)
+    {
+        $this->email = $email;
+
+        return $this;
     }
 
     /**
@@ -293,6 +334,9 @@ class Order implements OrderInterface
      */
     public function setItemsTotal($itemsTotal)
     {
+        if (!is_int($itemsTotal)) {
+            throw new \InvalidArgumentException('Items total must be an integer.');
+        }
         $this->itemsTotal = $itemsTotal;
 
         return $this;
@@ -319,9 +363,15 @@ class Order implements OrderInterface
     /**
      * {@inheritdoc}
      */
-    public function getAdjustments()
+    public function getAdjustments($type = null)
     {
-        return $this->adjustments;
+        if (null === $type) {
+            return $this->adjustments;
+        }
+
+        return $this->adjustments->filter(function (AdjustmentInterface $adjustment) use ($type) {
+            return $type === $adjustment->getLabel();
+        });
     }
 
     /**
@@ -342,7 +392,7 @@ class Order implements OrderInterface
      */
     public function removeAdjustment(AdjustmentInterface $adjustment)
     {
-        if ($this->hasAdjustment($adjustment)) {
+        if (!$adjustment->isLocked() && $this->hasAdjustment($adjustment)) {
             $adjustment->setAdjustable(null);
             $this->adjustments->removeElement($adjustment);
         }
@@ -361,9 +411,34 @@ class Order implements OrderInterface
     /**
      * {@inheritdoc}
      */
-    public function getAdjustmentsTotal()
+    public function getAdjustmentsTotal($type = null)
     {
-        return $this->adjustmentsTotal;
+        if (null === $type) {
+            return $this->adjustmentsTotal;
+        }
+
+        $total = 0;
+        foreach ($this->getAdjustments($type) as $adjustment) {
+            $total += $adjustment->getAmount();
+        }
+
+        return $total;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function removeAdjustments($type)
+    {
+        foreach ($this->getAdjustments($type) as $adjustment) {
+            if ($adjustment->isLocked()) {
+                continue;
+            }
+
+            $this->removeAdjustment($adjustment);
+        }
+
+        return $this;
     }
 
     /**
@@ -393,6 +468,40 @@ class Order implements OrderInterface
     /**
      * {@inheritdoc}
      */
+    public function getComments()
+    {
+        return $this->comments;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function addComment(CommentInterface $comment)
+    {
+        if (!$this->comments->contains($comment)) {
+            $comment->setOrder($this);
+            $this->comments->add($comment);
+        }
+
+        return $this;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function removeComment(CommentInterface $comment)
+    {
+        if ($this->comments->contains($comment)) {
+            $comment->setOrder(null);
+            $this->comments->removeElement($comment);
+        }
+
+        return $this;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
     public function getTotal()
     {
         return $this->total;
@@ -403,6 +512,9 @@ class Order implements OrderInterface
      */
     public function setTotal($total)
     {
+        if (!is_int($total)) {
+            throw new \InvalidArgumentException('Total must be an integer.');
+        }
         $this->total = $total;
 
         return $this;
@@ -533,5 +645,49 @@ class Order implements OrderInterface
     public function isEmpty()
     {
         return $this->items->isEmpty();
+    }
+
+
+    /**
+     * {@inheritdoc}
+     */
+    public function addIdentity(IdentityInterface $identity)
+    {
+        if (!$this->hasIdentity($identity)) {
+            $this->identities->add($identity);
+
+            $identity->setOrder($this);
+        }
+
+        return $this;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function hasIdentity(IdentityInterface $identity)
+    {
+        return $this->identities->contains($identity);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getIdentities()
+    {
+        return $this->identities;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function removeIdentity(IdentityInterface $identity)
+    {
+        if ($this->hasIdentity($identity)) {
+            $identity->setOrder(null);
+            $this->identities->removeElement($identity);
+        }
+
+        return $this;
     }
 }

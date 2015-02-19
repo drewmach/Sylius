@@ -23,12 +23,12 @@
         "php": ">=5.3.3",
 
         "symfony/framework-bundle":        "~2.3",
-        "stof/doctrine-extensions-bundle": "1.1.*",
-        "sylius/attribute":                "0.10.*@dev",
-        "sylius/resource-bundle":          "0.10.*@dev"
+        "stof/doctrine-extensions-bundle": "~1.1",
+        "sylius/attribute":                "0.14.*@dev",
+        "sylius/resource-bundle":          "0.14.*@dev"
     },
     "require-dev": {
-        "phpspec/phpspec":   "~2.0",
+        "phpspec/phpspec":   "~2.1",
         "symfony/form":      "~2.3"
     },
     "config": {
@@ -42,7 +42,7 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-master": "0.10-dev"
+            "dev-master": "0.14-dev"
         }
     }
 }

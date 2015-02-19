@@ -12,9 +12,9 @@
 namespace Sylius\Bundle\WebBundle\Controller\Frontend\Account;
 
 use Doctrine\Common\Persistence\ObjectManager;
+use FOS\RestBundle\Controller\FOSRestController;
 use Sylius\Component\Addressing\Model\AddressInterface;
 use Sylius\Component\Resource\Repository\RepositoryInterface;
-use Symfony\Bundle\FrameworkBundle\Controller\Controller;
 use Symfony\Component\Form\FormInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -26,16 +26,22 @@ use Symfony\Component\Security\Core\Exception\AccessDeniedException;
  *
  * @author Julien Janvier <j.janvier@gmail.com>
  */
-class AddressController extends Controller
+class AddressController extends FOSRestController
 {
     /**
      * Get collection of user's addresses.
      */
-    public function indexAction(Request $request)
+    public function indexAction()
     {
-        return $this->render('SyliusWebBundle:Frontend/Account:Address/index.html.twig', array(
-            'addresses' => $this->getUser()->getAddresses()
-        ));
+        $view = $this
+            ->view()
+            ->setTemplate('SyliusWebBundle:Frontend/Account:Address/index.html.twig')
+            ->setData(array(
+                'addresses' => $this->getUser()->getAddresses(),
+            ))
+        ;
+
+        return $this->handleView($view);
     }
 
     /**
@@ -47,7 +53,7 @@ class AddressController extends Controller
         $address = $this->getAddressRepository()->createNew();
         $form = $this->getAddressForm($address);
 
-        if ($request->isMethod('POST') && $form->submit($request)->isValid()) {
+        if ($form->handleRequest($request)->isValid()) {
             $user->addAddress($address);
 
             $manager = $this->getUserManager();
@@ -59,10 +65,16 @@ class AddressController extends Controller
             return $this->redirectToIndex();
         }
 
-        return $this->render('SyliusWebBundle:Frontend/Account:Address/create.html.twig', array(
-            'user' => $this->getUser(),
-            'form' => $form->createView()
-        ));
+        $view = $this
+            ->view()
+            ->setTemplate('SyliusWebBundle:Frontend/Account:Address/create.html.twig')
+            ->setData(array(
+                'user' => $this->getUser(),
+                'form' => $form->createView()
+            ))
+        ;
+
+        return $this->handleView($view);
     }
 
     /**
@@ -74,7 +86,7 @@ class AddressController extends Controller
         $address = $this->findUserAddressOr404($id);
         $form = $this->getAddressForm($address);
 
-        if ($request->isMethod('POST') && $form->submit($request)->isValid()) {
+        if ($form->handleRequest($request)->isValid()) {
             $manager = $this->getUserManager();
             $manager->persist($user);
             $manager->flush();
@@ -84,11 +96,17 @@ class AddressController extends Controller
             return $this->redirectToIndex();
         }
 
-        return $this->render('SyliusWebBundle:Frontend/Account:Address/update.html.twig', array(
-            'user'    => $this->getUser(),
-            'address' => $address,
-            'form'    => $form->createView()
-        ));
+        $view = $this
+            ->view()
+            ->setTemplate('SyliusWebBundle:Frontend/Account:Address/update.html.twig')
+            ->setData(array(
+                'user'    => $this->getUser(),
+                'address' => $address,
+                'form'    => $form->createView()
+            ))
+        ;
+
+        return $this->handleView($view);
     }
 
     /**
@@ -145,6 +163,12 @@ class AddressController extends Controller
         return $this->redirectToIndex();
     }
 
+    protected function addFlash($type, $message)
+    {
+        $translator = $this->get('translator');
+        $this->get('session')->getFlashBag()->add($type, $translator->trans($message, array(), 'flashes'));
+    }
+
     /**
      * @param AddressInterface $address
      *
@@ -174,12 +198,6 @@ class AddressController extends Controller
     private function redirectToIndex()
     {
         return $this->redirect($this->generateUrl('sylius_account_address_index'));
-    }
-
-    private function addFlash($type, $message)
-    {
-        $translator = $this->get('translator');
-        $this->get('session')->getFlashBag()->add($type, $translator->trans($message, array(), 'flashes'));
     }
 
     /**

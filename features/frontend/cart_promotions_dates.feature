@@ -32,6 +32,7 @@ Feature: Checkout limited time promotions
           | Sarge   | 25    | Debian T-Shirts |
           | Etch    | 20    | Debian T-Shirts |
           | Lenny   | 15    | Debian T-Shirts |
+        And there is default currency configured
 
     Scenario: Promotion is applied when the order date corresponds
               with promotion dates
@@ -39,4 +40,4 @@ Feature: Checkout limited time promotions
          When I added product "Sarge" to cart, with quantity "8"
          Then I should be on the cart summary page
           And "Promotion total: -€20.00" should appear on the page
-          And "Grand total: €180.00" should appear on the page
+          And "Grand total: €160.00" should appear on the page

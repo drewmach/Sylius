@@ -12,13 +12,14 @@
 namespace Sylius\Bundle\ResourceBundle\Behat;
 
 use Behat\Behat\Context\Context;
-use Behat\Behat\Hook\Scope\AfterScenarioScope;
+use Behat\Behat\Hook\Scope\BeforeScenarioScope;
 use Behat\MinkExtension\Context\RawMinkContext;
 use Behat\Symfony2Extension\Context\KernelAwareContext;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\DataFixtures\Purger\ORMPurger;
 use Doctrine\Common\Persistence\ObjectManager;
 use Faker\Factory as FakerFactory;
+use Faker\Generator;
 use Sylius\Component\Resource\Repository\RepositoryInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpKernel\KernelInterface;
@@ -62,15 +63,6 @@ abstract class DefaultContext extends RawMinkContext implements Context, KernelA
     public function setKernel(KernelInterface $kernel)
     {
         $this->kernel = $kernel;
-    }
-
-    /**
-     * @AfterScenario
-     */
-    public function purgeDatabase(AfterScenarioScope $scope)
-    {
-        $purger = new ORMPurger($this->getService('doctrine.orm.entity_manager'));
-        $purger->purge();
     }
 
     /**
@@ -169,7 +161,7 @@ abstract class DefaultContext extends RawMinkContext implements Context, KernelA
         $list = explode(',', $configurationString);
 
         foreach ($list as $parameter) {
-            list($key, $value) = explode(':', $parameter);
+            list($key, $value) = explode(':', $parameter, 2);
             $key = strtolower(trim(str_replace(' ', '_', $key)));
 
             switch ($key) {
@@ -183,6 +175,10 @@ abstract class DefaultContext extends RawMinkContext implements Context, KernelA
 
                 case 'variant':
                     $configuration[$key] = $this->getRepository('product')->findOneBy(array('name' => trim($value)))->getMasterVariant()->getId();
+                    break;
+
+                case 'amount':
+                    $configuration[$key] = (int) $value;
                     break;
 
                 default:
@@ -200,14 +196,14 @@ abstract class DefaultContext extends RawMinkContext implements Context, KernelA
      * with "sylius_" and used as route name passed to router generate method.
      *
      * @param object|string $page
-     * @param array  $parameters
+     * @param array         $parameters
      *
      * @return string
      */
     protected function generatePageUrl($page, array $parameters = array())
     {
         if (is_object($page)) {
-            return $this->locatePath($this->generateUrl($page, $parameters));
+            return $this->generateUrl($page, $parameters);
         }
 
         $route  = str_replace(' ', '_', trim($page));
@@ -224,7 +220,7 @@ abstract class DefaultContext extends RawMinkContext implements Context, KernelA
         $route = str_replace(array_keys($this->actions), array_values($this->actions), $route);
         $route = str_replace(' ', '_', $route);
 
-        return $this->locatePath($this->generateUrl($route, $parameters));
+        return $this->generateUrl($route, $parameters);
     }
 
     /**
@@ -266,7 +262,7 @@ abstract class DefaultContext extends RawMinkContext implements Context, KernelA
      */
     protected function generateUrl($route, array $parameters = array(), $absolute = false)
     {
-        return $this->getService('router')->generate($route, $parameters, $absolute);
+        return $this->locatePath($this->getService('router')->generate($route, $parameters, $absolute));
     }
 
     /**

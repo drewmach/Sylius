@@ -11,11 +11,10 @@
 
 namespace Sylius\Bundle\CoreBundle\StateMachineCallback;
 
-use Doctrine\Common\Collections\Collection;
-use Finite\Factory\FactoryInterface;
-use Sylius\Component\Order\OrderTransitions;
+use SM\Factory\FactoryInterface;
+use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\PaymentInterface;
-use Sylius\Component\Payment\PaymentTransitions;
+use Sylius\Component\Order\OrderTransitions;
 
 /**
  * Synchronization between payments and their order.
@@ -39,26 +38,30 @@ class OrderPaymentCallback
 
     public function updateOrderOnPayment(PaymentInterface $payment)
     {
+        /** @var $order OrderInterface */
         $order = $payment->getOrder();
-
         if (null === $order) {
             throw new \RuntimeException(sprintf('Cannot retrieve Order from Payment with id %s', $payment->getId()));
         }
 
         $total = 0;
-        foreach ($order->getPayments() as $payment) {
+        if (PaymentInterface::STATE_COMPLETED === $payment->getState()) {
+            $payments = $order->getPayments()->filter(function (PaymentInterface $payment) {
+                return PaymentInterface::STATE_COMPLETED === $payment->getState();
+            });
+
+            if ($payments->count() === $order->getPayments()->count()) {
+                $order->setPaymentState(PaymentInterface::STATE_COMPLETED);
+            }
+
             $total += $payment->getAmount();
+        } else {
+            $order->setPaymentState($payment->getState());
         }
 
-        if ($total === $order->getTotal()) {
-            $this->factory->get($order, OrderTransitions::GRAPH)->apply(OrderTransitions::SYLIUS_CONFIRM);
-        }
-    }
-
-    public function voidPayments(Collection $payments, $transition)
-    {
-        foreach ($payments as $payment) {
-            $this->factory->get($payment, PaymentTransitions::GRAPH)->apply($transition);
+        // be flexible over many payment methods
+        if ($total >= $order->getTotal()) {
+            $this->factory->get($order, OrderTransitions::GRAPH)->apply(OrderTransitions::SYLIUS_CONFIRM, true);
         }
     }
 }

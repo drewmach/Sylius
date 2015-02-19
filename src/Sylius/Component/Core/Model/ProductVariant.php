@@ -34,7 +34,7 @@ class ProductVariant extends BaseVariant implements ProductVariantInterface
     /**
      * The variant price.
      *
-     * @var integer
+     * @var int
      */
     protected $price;
 
@@ -55,28 +55,35 @@ class ProductVariant extends BaseVariant implements ProductVariantInterface
     /**
      * On hold.
      *
-     * @var integer
+     * @var int
      */
     protected $onHold = 0;
 
     /**
      * On hand stock.
      *
-     * @var integer
+     * @var int
      */
     protected $onHand = 0;
 
     /**
+     * Sold amount.
+     *
+     * @var int
+     */
+    protected $sold = 0;
+
+    /**
      * Is variant available on demand?
      *
-     * @var Boolean
+     * @var bool
      */
     protected $availableOnDemand = true;
 
     /**
      * Images.
      *
-     * @var Collection|VariantImageInterface[]
+     * @var Collection|ProductVariantImageInterface[]
      */
     protected $images;
 
@@ -126,10 +133,10 @@ class ProductVariant extends BaseVariant implements ProductVariantInterface
             $string .= '(';
 
             foreach ($this->getOptions() as $option) {
-                $string .= $option->getOption()->getName(). ': '.$option->getValue().', ';
+                $string .= $option->getOption()->getName() . ': ' . $option->getValue() . ', ';
             }
 
-            $string = substr($string, 0, -2).')';
+            $string = substr($string, 0, -2) . ')';
         }
 
         return $string;
@@ -166,6 +173,9 @@ class ProductVariant extends BaseVariant implements ProductVariantInterface
      */
     public function setPrice($price)
     {
+        if (!is_int($price)) {
+            throw new \InvalidArgumentException('Price must be an integer.');
+        }
         $this->price = $price;
 
         return $this;
@@ -258,6 +268,24 @@ class ProductVariant extends BaseVariant implements ProductVariantInterface
     /**
      * {@inheritdoc}
      */
+    public function getSold()
+    {
+        return $this->sold;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setSold($sold)
+    {
+        $this->sold = (int)$sold;
+
+        return $this;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
     public function getInventoryName()
     {
         return $this->getProduct()->getName();
@@ -276,7 +304,7 @@ class ProductVariant extends BaseVariant implements ProductVariantInterface
      */
     public function setAvailableOnDemand($availableOnDemand)
     {
-        $this->availableOnDemand = (Boolean) $availableOnDemand;
+        $this->availableOnDemand = (bool)$availableOnDemand;
 
         return $this;
     }
@@ -315,6 +343,18 @@ class ProductVariant extends BaseVariant implements ProductVariantInterface
     public function getImages()
     {
         return $this->images;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getImage()
+    {
+        if ($this->images->isEmpty()) {
+            return $this->getProduct()->getImage();
+        }
+
+        return $this->images->first();
     }
 
     /**
@@ -443,5 +483,13 @@ class ProductVariant extends BaseVariant implements ProductVariantInterface
     public function getShippingDepth()
     {
         return $this->getDepth();
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getShippingVolume()
+    {
+        return $this->depth * $this->height * $this->width;
     }
 }

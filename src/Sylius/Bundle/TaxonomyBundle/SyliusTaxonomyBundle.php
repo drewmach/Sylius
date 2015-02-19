@@ -11,48 +11,44 @@
 
 namespace Sylius\Bundle\TaxonomyBundle;
 
-use Doctrine\Bundle\DoctrineBundle\DependencyInjection\Compiler\DoctrineOrmMappingsPass;
-use Sylius\Bundle\ResourceBundle\DependencyInjection\Compiler\ResolveDoctrineTargetEntitiesPass;
+use Sylius\Bundle\ResourceBundle\AbstractResourceBundle;
 use Sylius\Bundle\ResourceBundle\SyliusResourceBundle;
-use Symfony\Component\DependencyInjection\ContainerBuilder;
-use Symfony\Component\HttpKernel\Bundle\Bundle;
 
 /**
  * Flexible categorization system.
  *
  * @author Paweł Jędrzejewski <pawel@sylius.org>
+ * @author Gonzalo Vilaseca <gvilaseca@reiss.co.uk>
  */
-class SyliusTaxonomyBundle extends Bundle
+class SyliusTaxonomyBundle extends AbstractResourceBundle
 {
     /**
-     * Return array of currently supported drivers.
-     *
-     * @return array
+     * {@inheritdoc}
      */
     public static function getSupportedDrivers()
     {
         return array(
             SyliusResourceBundle::DRIVER_DOCTRINE_ORM,
-            SyliusResourceBundle::DRIVER_DOCTRINE_MONGODB_ODM
+            SyliusResourceBundle::DRIVER_DOCTRINE_MONGODB_ODM,
         );
     }
 
     /**
      * {@inheritdoc}
      */
-    public function build(ContainerBuilder $container)
+    protected function getModelInterfaces()
     {
-        $interfaces = array(
+        return array(
             'Sylius\Component\Taxonomy\Model\TaxonomyInterface' => 'sylius.model.taxonomy.class',
             'Sylius\Component\Taxonomy\Model\TaxonInterface'    => 'sylius.model.taxon.class',
         );
+    }
 
-        $container->addCompilerPass(new ResolveDoctrineTargetEntitiesPass('sylius_taxonomy', $interfaces));
-
-        $mappings = array(
-            realpath(__DIR__ . '/Resources/config/doctrine/model') => 'Sylius\Component\Taxonomy\Model',
-        );
-
-        $container->addCompilerPass(DoctrineOrmMappingsPass::createXmlMappingDriver($mappings, array('doctrine.orm.entity_manager'), 'sylius_taxonomy.driver.doctrine/orm'));
+    /**
+     * {@inheritdoc}
+     */
+    protected function getModelNamespace()
+    {
+        return 'Sylius\Component\Taxonomy\Model';
     }
 }

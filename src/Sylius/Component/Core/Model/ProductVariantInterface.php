@@ -36,11 +36,19 @@ interface ProductVariantInterface extends
     public function getImages();
 
     /**
+     * Get variant main image if any.
+     * Fall-back on product master variant
+     *
+     * @return ImageInterface
+     */
+    public function getImage();
+
+    /**
      * Checks if product has image.
      *
      * @param ProductVariantImageInterface $image
      *
-     * @return Boolean
+     * @return bool
      */
     public function hasImage(ProductVariantImageInterface $image);
 
@@ -59,42 +67,54 @@ interface ProductVariantInterface extends
     public function removeImage(ProductVariantImageInterface $image);
 
     /**
-     * @return integer
+     * @return int
+     */
+    public function getSold();
+
+    /**
+     * @param int $sold
+     *
+     * @return $this
+     */
+    public function setSold($sold);
+
+    /**
+     * @return float
      */
     public function getWeight();
 
     /**
-     * @param integer $weight
+     * @param float $weight
      */
     public function setWeight($weight);
 
     /**
-     * @return integer
+     * @return float
      */
     public function getWidth();
 
     /**
-     * @param integer $width
+     * @param float $width
      */
     public function setWidth($width);
 
     /**
-     * @return integer
+     * @return float
      */
     public function getHeight();
 
     /**
-     * @param integer $height
+     * @param float $height
      */
     public function setHeight($height);
 
     /**
-     * @return integer
+     * @return float
      */
     public function getDepth();
 
     /**
-     * @param integer $depth
+     * @param float $depth
      */
     public function setDepth($depth);
 }

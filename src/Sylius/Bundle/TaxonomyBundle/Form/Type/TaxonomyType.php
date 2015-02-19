@@ -11,64 +11,26 @@
 
 namespace Sylius\Bundle\TaxonomyBundle\Form\Type;
 
-use Symfony\Component\Form\AbstractType;
+use Sylius\Bundle\ResourceBundle\Form\Type\AbstractResourceType;
 use Symfony\Component\Form\FormBuilderInterface;
-use Symfony\Component\OptionsResolver\OptionsResolverInterface;
 
 /**
  * Taxonomy form form.
  *
  * @author Paweł Jędrzejewski <pawel@sylius.org>
+ * @author Gonzalo Vilaseca <gvilaseca@reiss.co.uk>
  */
-class TaxonomyType extends AbstractType
+class TaxonomyType extends AbstractResourceType
 {
-    /**
-     * Data class.
-     *
-     * @var string
-     */
-    protected $dataClass;
-
-    /**
-     * Validation groups.
-     *
-     * @var array
-     */
-    protected $validationGroups;
-
-    /**
-     * Constructor.
-     *
-     * @param string $dataClass        FQCN of taxonomy model
-     * @param array  $validationGroups
-     */
-    public function __construct($dataClass, array $validationGroups)
-    {
-        $this->dataClass = $dataClass;
-        $this->validationGroups = $validationGroups;
-    }
-
     /**
      * {@inheritdoc}
      */
     public function buildForm(FormBuilderInterface $builder, array $options)
     {
         $builder
-            ->add('name', 'text', array(
-                'label' => 'sylius.form.taxonomy.name'
-            ))
-        ;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function setDefaultOptions(OptionsResolverInterface $resolver)
-    {
-        $resolver
-            ->setDefaults(array(
-                'data_class'        => $this->dataClass,
-                'validation_groups' => $this->validationGroups,
+            ->add('translations', 'a2lix_translationsForms', array(
+                'form_type' => 'sylius_taxonomy_translation',
+                'label'    => 'sylius.form.taxonomy.name'
             ))
         ;
     }

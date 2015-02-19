@@ -5,7 +5,8 @@ Feature: User account orders page
   I want to be able to track and get an invoice of my sent orders
 
   Background:
-    Given I am logged in user
+    Given there is default currency configured
+      And I am logged in user
       And I am on my account homepage
       And the following zones are defined:
         | name         | type    | members                 |
@@ -129,10 +130,10 @@ Feature: User account orders page
     Given I am on my account orders page
      Then I should not see an "#order-000000007-invoice" element
 
-  @invoice
-  Scenario: Generating an invoice for an order that has been sent
-    Given I go to the order invoice page for 000000001
-     Then the response status code should be 200
+  #@invoice
+  #Scenario: Generating an invoice for an order that has been sent
+    #Given I go to the order invoice page for 000000001
+     #Then the response status code should be 200
 
   Scenario: Trying to generate an invoice for an order that has not been sent
     Given I go to the order invoice page for 000000007

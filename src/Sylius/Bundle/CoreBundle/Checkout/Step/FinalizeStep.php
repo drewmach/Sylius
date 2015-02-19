@@ -52,7 +52,7 @@ class FinalizeStep extends CheckoutStep
 
     protected function renderStep(ProcessContextInterface $context, OrderInterface $order)
     {
-        return $this->render('SyliusWebBundle:Frontend/Checkout/Step:finalize.html.twig', array(
+        return $this->render($this->container->getParameter(sprintf('sylius.checkout.step.%s.template', $this->getName())), array(
             'context' => $context,
             'order'   => $order
         ));
@@ -68,7 +68,7 @@ class FinalizeStep extends CheckoutStep
         $this->dispatchCheckoutEvent(SyliusOrderEvents::PRE_CREATE, $order);
         $this->dispatchCheckoutEvent(SyliusCheckoutEvents::FINALIZE_PRE_COMPLETE, $order);
 
-        $this->get('finite.factory')->get($order, OrderTransitions::GRAPH)->apply(OrderTransitions::SYLIUS_CREATE);
+        $this->get('sm.factory')->get($order, OrderTransitions::GRAPH)->apply(OrderTransitions::SYLIUS_CREATE, true);
 
         $manager = $this->get('sylius.manager.order');
         $manager->persist($order);

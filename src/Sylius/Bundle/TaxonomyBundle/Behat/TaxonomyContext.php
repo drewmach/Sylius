@@ -83,4 +83,60 @@ class TaxonomyContext extends DefaultContext
         $manager->persist($taxonomy);
         $manager->flush();
     }
+
+    /**
+     * @Given the following taxonomy translations exist
+     */
+    public function theFollowingTaxonomyTranslationsExist(TableNode $table)
+    {
+        $manager = $this->getEntityManager();
+
+        foreach ($table->getHash() as $data) {
+            $taxonomyTranslation = $this->findOneByName('taxonomy_translation', $data['taxonomy']);
+            $taxonomy = $taxonomyTranslation->getTranslatable();
+            $taxonomy
+                ->setCurrentLocale($data['locale'])
+                ->setName($data['name']);
+        }
+
+        $manager->flush();
+    }
+
+    /**
+     * @Given the following taxon translations exist
+     */
+    public function theFollowingTaxonTranslationsExist(TableNode $table)
+    {
+        foreach ($table->getHash() as $data) {
+            $taxonTranslation = $this->findOneByName('taxon_translation', $data['taxon']);
+            $taxon = $taxonTranslation->getTranslatable();
+            $taxon
+                ->setCurrentLocale($data['locale'])
+                ->setName($data['name']);
+        }
+
+        $this->getEntityManager()->flush();
+    }
+
+    /**
+     * @Then Taxon translation :taxonName should have permalink :expectedPermalink
+     */
+    public function taxonForLocaleShouldHavePermalink($taxonName, $expectedPermalink)
+    {
+        $taxonTranslation = $this->findOneByName('taxon_translation', $taxonName);
+        $permalink = $taxonTranslation->getPermalink();
+
+        \PHPUnit_Framework_Assert::assertEquals($expectedPermalink, $permalink);
+    }
+
+    /**
+     * @When I change then name of taxon translation :taxonName to :newName
+     */
+    public function iChangeThenNameOfTaxonTranslationTo($taxonName, $newName)
+    {
+        $taxonTranslation = $this->findOneByName('taxon_translation', $taxonName);
+        $taxonTranslation->setName($newName);
+
+        $this->getEntityManager()->flush();
+    }
 }

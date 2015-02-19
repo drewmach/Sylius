@@ -12,55 +12,35 @@
 namespace Sylius\Component\Core\Promotion\Action;
 
 use Sylius\Component\Core\Model\OrderInterface;
-use Sylius\Component\Promotion\Action\PromotionActionInterface;
+use Sylius\Component\Core\Model\OrderItemInterface;
 use Sylius\Component\Promotion\Model\PromotionInterface;
 use Sylius\Component\Promotion\Model\PromotionSubjectInterface;
-use Sylius\Component\Resource\Repository\RepositoryInterface;
+use Sylius\Component\Resource\Exception\UnexpectedTypeException;
 
 /**
  * Fixed discount action.
  *
  * @author Paweł Jędrzejewski <pawel@sylius.org>
+ * @author Saša Stamenković <umpirsky@gmail.com>
  */
-class FixedDiscountAction implements PromotionActionInterface
+class FixedDiscountAction extends DiscountAction
 {
-    /**
-     * Adjustment repository.
-     *
-     * @var RepositoryInterface
-     */
-    protected $repository;
-
-    /**
-     * Constructor.
-     *
-     * @param RepositoryInterface $repository
-     */
-    public function __construct(RepositoryInterface $repository)
-    {
-        $this->repository = $repository;
-    }
-
     /**
      * {@inheritdoc}
      */
     public function execute(PromotionSubjectInterface $subject, array $configuration, PromotionInterface $promotion)
     {
-        $adjustment = $this->repository->createNew();
+        if (!$subject instanceof OrderInterface && !$subject instanceof OrderItemInterface) {
+            throw new UnexpectedTypeException(
+                $subject,
+                'Sylius\Component\Core\Model\OrderInterface or Sylius\Component\Core\Model\OrderItemInterface'
+            );
+        }
 
+        $adjustment = $this->createAdjustment($promotion);
         $adjustment->setAmount(-$configuration['amount']);
-        $adjustment->setLabel(OrderInterface::PROMOTION_ADJUSTMENT);
-        $adjustment->setDescription($promotion->getDescription());
 
         $subject->addAdjustment($adjustment);
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function revert(PromotionSubjectInterface $subject, array $configuration, PromotionInterface $promotion)
-    {
-        $subject->removePromotionAdjustments();
     }
 
     /**

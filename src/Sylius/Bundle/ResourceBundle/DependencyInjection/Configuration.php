@@ -34,6 +34,7 @@ class Configuration implements ConfigurationInterface
         $rootNode = $treeBuilder->root('sylius_resource');
 
         $this->addResourcesSection($rootNode);
+        $this->addSettingsSection($rootNode);
 
         return $treeBuilder;
     }
@@ -52,6 +53,7 @@ class Configuration implements ConfigurationInterface
                     ->prototype('array')
                         ->children()
                             ->scalarNode('driver')->isRequired()->cannotBeEmpty()->end()
+                            ->scalarNode('object_manager')->defaultValue('default')->end()
                             ->scalarNode('templates')->cannotBeEmpty()->end()
                             ->arrayNode('classes')
                                 ->children()
@@ -59,9 +61,55 @@ class Configuration implements ConfigurationInterface
                                     ->scalarNode('controller')->defaultValue('Sylius\Bundle\ResourceBundle\Controller\ResourceController')->end()
                                     ->scalarNode('repository')->end()
                                     ->scalarNode('interface')->end()
+                                    ->arrayNode('translatable')
+                                        ->children()
+                                            ->scalarNode('targetEntity')->end()
+                                            ->arrayNode('translatable_fields')
+                                                ->prototype('scalar')->end()
+                                            ->end()
+                                            ->scalarNode('field')->end()
+                                            ->scalarNode('currentLocale')->end()
+                                            ->scalarNode('fallbackLocale')->end()
+                                        ->end()
+                                    ->end()
+                                    ->arrayNode('translation')
+                                        ->children()
+                                            ->scalarNode('field')->end()
+                                            ->scalarNode('locale')->end()
+                                        ->end()
+                                    ->end()
                                 ->end()
                             ->end()
                         ->end()
+                    ->end()
+                ->end()
+            ->end()
+        ;
+    }
+
+    /**
+     * Adds `settings` section.
+     *
+     * @param $node
+     */
+    private function addSettingsSection(ArrayNodeDefinition $node)
+    {
+        $node
+            ->children()
+                ->arrayNode('settings')
+                    ->addDefaultsIfNotSet()
+                    ->children()
+                        ->variableNode('paginate')->defaultNull()->end()
+                        ->variableNode('limit')->defaultNull()->end()
+                        ->arrayNode('allowed_paginate')
+                            ->prototype('integer')->end()
+                            ->defaultValue(array(10, 20, 30))
+                        ->end()
+                        ->integerNode('default_page_size')->defaultValue(10)->end()
+                        ->booleanNode('sortable')->defaultFalse()->end()
+                        ->variableNode('sorting')->defaultNull()->end()
+                        ->booleanNode('filterable')->defaultFalse()->end()
+                        ->variableNode('criteria')->defaultNull()->end()
                     ->end()
                 ->end()
             ->end()

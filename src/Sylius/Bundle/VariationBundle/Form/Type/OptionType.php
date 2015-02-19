@@ -11,16 +11,16 @@
 
 namespace Sylius\Bundle\VariationBundle\Form\Type;
 
-use Symfony\Component\Form\AbstractType;
+use Sylius\Bundle\ResourceBundle\Form\Type\AbstractResourceType;
 use Symfony\Component\Form\FormBuilderInterface;
-use Symfony\Component\OptionsResolver\OptionsResolverInterface;
 
 /**
  * Option form type.
  *
  * @author Paweł Jędrzejewski <pawel@sylius.org>
+ * @author Gonzalo Vilaseca <gvilaseca@reiss.co.uk>
  */
-class OptionType extends AbstractType
+class OptionType extends AbstractResourceType
 {
     /**
      * Variable object name.
@@ -30,31 +30,17 @@ class OptionType extends AbstractType
     protected $variableName;
 
     /**
-     * Data class.
-     *
-     * @var string
-     */
-    protected $dataClass;
-
-    /**
-     * Validation groups.
-     *
-     * @var array
-     */
-    protected $validationGroups;
-
-    /**
      * Constructor.
      *
-     * @param string $variableName
      * @param string $dataClass
      * @param array  $validationGroups
+     * @param string $variableName
      */
-    public function __construct($variableName, $dataClass, array $validationGroups)
+    public function __construct($dataClass, array $validationGroups, $variableName)
     {
+        parent::__construct($dataClass, $validationGroups);
+
         $this->variableName = $variableName;
-        $this->dataClass = $dataClass;
-        $this->validationGroups = $validationGroups;
     }
 
     /**
@@ -66,28 +52,17 @@ class OptionType extends AbstractType
             ->add('name', 'text', array(
                 'label' => 'sylius.form.option.name'
             ))
-            ->add('presentation', 'text', array(
-                'label' => 'sylius.form.option.presentation'
+            ->add('translations', 'a2lix_translationsForms', array(
+                'form_type' => sprintf('sylius_%s_option_translation', $this->variableName),
+                'label'    => 'sylius.form.option.presentation'
             ))
             ->add('values', 'collection', array(
-                'type'         => sprintf('sylius_%s_option_value', $this->variableName),
-                'allow_add'    => true,
+                'type' => sprintf('sylius_%s_option_value', $this->variableName),
+                'allow_add' => true,
                 'allow_delete' => true,
                 'by_reference' => false,
-                'label'        => 'sylius.form.option.values'
-            ))
-        ;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function setDefaultOptions(OptionsResolverInterface $resolver)
-    {
-        $resolver
-            ->setDefaults(array(
-                'data_class'        => $this->dataClass,
-                'validation_groups' => $this->validationGroups,
+                'label' => false,
+                'button_add_label' => 'sylius.form.option_value.add_value'
             ))
         ;
     }

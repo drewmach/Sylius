@@ -308,7 +308,7 @@ sylius:
         type: tip
         update_header: Ažuriranje atributa
         updated_at: ažurirano
-    prototype:
+    archetype:
         build: Kreiraj prototip
         build_header: Kreirajte proizvod od prototipa
         create: Kreiraj prototip
@@ -437,10 +437,10 @@ sylius:
         no_results: Nema korisnika za prikaz.
         order:
             no_results:
-                0: Nema korinika.
+                header: Nema korinika.
                 1: Nema narudžbina korisnika
         orders:
-            0: Nema narudžbina.
+            header: Nema narudžbina.
             1: Narudžbine korisnika
         recent_header: Poslednji korisnici
         show_header: Detalji korisnika

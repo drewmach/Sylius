@@ -21,7 +21,7 @@ use Sylius\Component\Sequence\Model\SequenceSubjectInterface;
  *
  * @author Paweł Jędrzejewski <pawel@sylius.org>
  */
-interface OrderInterface extends AdjustableInterface, TimestampableInterface, SoftDeletableInterface, SequenceSubjectInterface
+interface OrderInterface extends AdjustableInterface, CommentAwareInterface, TimestampableInterface, SoftDeletableInterface, SequenceSubjectInterface
 {
     const STATE_CART        = 'cart';
     const STATE_CART_LOCKED = 'cart_locked';
@@ -31,6 +31,20 @@ interface OrderInterface extends AdjustableInterface, TimestampableInterface, So
     const STATE_ABANDONED   = 'abandoned';
     const STATE_CANCELLED   = 'cancelled';
     const STATE_RETURNED    = 'returned';
+
+    /**
+     * Get customer email.
+     *
+     * @return string
+     */
+    public function getEmail();
+
+    /**
+     * Set customer email.
+     *
+     * @param string $email
+     */
+    public function setEmail($email);
 
     /**
      * Has the order been completed by user and can be handled.
@@ -174,4 +188,33 @@ interface OrderInterface extends AdjustableInterface, TimestampableInterface, So
      * @param string $state
      */
     public function setState($state);
+
+    /**
+     * Add an identity to this order.  Eg. external identity to refer to an ebay order id
+     *
+     * @param IdentityInterface $identity
+     * @return mixed
+     */
+    public function addIdentity(IdentityInterface $identity);
+
+    /**
+     * Remove identity from order.
+     *
+     * @param IdentityInterface $item
+     */
+    public function removeIdentity(IdentityInterface $identity);
+
+    /**
+     * Is the identity already contained in this order?
+     *
+     * @param IdentityInterface $identity
+     */
+    public function hasIdentity(IdentityInterface $identity);
+
+    /**
+     * Get all identities for this order.
+     *
+     * @return Collection|IdentityInterface[]
+     */
+    public function getIdentities();
 }

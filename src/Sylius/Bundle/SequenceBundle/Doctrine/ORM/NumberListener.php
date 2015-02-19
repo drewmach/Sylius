@@ -12,15 +12,16 @@
 namespace Sylius\Bundle\SequenceBundle\Doctrine\ORM;
 
 use Doctrine\Common\EventManager;
-use Doctrine\ORM\Event\OnFlushEventArgs;
+use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Event\PreFlushEventArgs;
 use Doctrine\ORM\Events;
 use Sylius\Component\Registry\NonExistingServiceException;
-use Sylius\Component\Sequence\Registry\NonExistingGeneratorException;
 use Sylius\Component\Registry\ServiceRegistryInterface;
 use Sylius\Component\Sequence\Model\SequenceSubjectInterface;
+use Sylius\Component\Sequence\Registry\NonExistingGeneratorException;
 use Sylius\Component\Sequence\SyliusSequenceEvents;
-use Symfony\Component\EventDispatcher\GenericEvent;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
+use Symfony\Component\EventDispatcher\GenericEvent;
 
 /**
  * Doctrine event listener
@@ -51,9 +52,14 @@ class NumberListener
     protected $sequenceClass;
 
     /**
-     * @var array
+     * @var SequenceSubjectInterface[]
      */
     protected $entitiesEnabled = array();
+
+    /**
+     * @var array
+     */
+    protected $sequences = array();
 
     /**
      * @var bool
@@ -74,16 +80,16 @@ class NumberListener
 
     /**
      * Enable this listener for the given entity
-     * This will apply the number generator when this entity will be fushed
+     * This will apply the number generator when this entity will be flushed
      *
      * @param SequenceSubjectInterface $subject
      */
     public function enableEntity(SequenceSubjectInterface $subject)
     {
-        $this->entitiesEnabled[spl_object_hash($subject)] = true;
+        $this->entitiesEnabled[spl_object_hash($subject)] = $subject;
 
         if (!$this->listenerEnabled) {
-            $this->eventManager->addEventListener(Events::onFlush, $this);
+            $this->eventManager->addEventListener(Events::preFlush, $this);
             $this->listenerEnabled = true;
         }
     }
@@ -91,56 +97,55 @@ class NumberListener
     /**
      * Apply generator to all enabled entities
      *
-     * @param OnFlushEventArgs $args
+     * @param PreFlushEventArgs $args
+     *
+     * @throws NonExistingGeneratorException if no generator is found for an enabled entity
      */
-    public function onFlush(OnFlushEventArgs $args)
+    public function preFlush(PreFlushEventArgs $args)
     {
         $em = $args->getEntityManager();
-        $uow = $em->getUnitOfWork();
 
-        foreach (array_merge($uow->getScheduledEntityUpdates(), $uow->getScheduledEntityInsertions()) as $entity) {
-            if ($this->isEntityEnabled($entity)) {
-                $event = new GenericEvent($entity);
-
-                try {
-                    $generator = $this->registry->get($entity);
-                } catch (NonExistingServiceException $e) {
-                    throw new NonExistingGeneratorException($entity, $e);
-                }
-
-                $sequence = $em
-                    ->getRepository($this->sequenceClass)
-                    ->findOneByType($entity->getSequenceType())
-                ;
-
-                if (null === $sequence) {
-                    $sequence = new $this->sequenceClass($entity->getSequenceType());
-                }
-
-                $this->eventDispatcher->dispatch(
-                    sprintf(SyliusSequenceEvents::PRE_GENERATE, $entity->getSequenceType()),
-                    $event
-                );
-
-                $generator->generate($entity, $sequence);
-
-                $this->eventDispatcher->dispatch(
-                    sprintf(SyliusSequenceEvents::POST_GENERATE, $entity->getSequenceType()),
-                    $event
-                );
-
-                $em->persist($sequence);
-                $uow->computeChangeSet($em->getClassMetadata(get_class($sequence)), $sequence);
+        foreach ($this->entitiesEnabled as $entity) {
+            try {
+                $generator = $this->registry->get($entity);
+            } catch (NonExistingServiceException $e) {
+                throw new NonExistingGeneratorException($entity, $e);
             }
+
+            $sequence = $this->getSequence($entity->getSequenceType(), $em);
+
+            $event = new GenericEvent($entity);
+
+            $this->eventDispatcher->dispatch(
+                sprintf(SyliusSequenceEvents::PRE_GENERATE, $entity->getSequenceType()),
+                $event
+            );
+
+            $generator->generate($entity, $sequence);
+
+            $this->eventDispatcher->dispatch(
+                sprintf(SyliusSequenceEvents::POST_GENERATE, $entity->getSequenceType()),
+                $event
+            );
         }
     }
 
-    /**
-     * @param $entity
-     * @return bool
-     */
-    protected function isEntityEnabled($entity)
+    protected function getSequence($type, EntityManagerInterface $em)
     {
-        return isset($this->entitiesEnabled[spl_object_hash($entity)]);
+        if (isset($this->sequences[$type])) {
+            return $this->sequences[$type];
+        }
+
+        $sequence = $em
+            ->getRepository($this->sequenceClass)
+            ->findOneBy(array('type' => $type))
+        ;
+
+        if (null === $sequence) {
+            $sequence = new $this->sequenceClass($type);
+            $em->persist($sequence);
+        }
+
+        return $this->sequences[$type] = $sequence;
     }
 }

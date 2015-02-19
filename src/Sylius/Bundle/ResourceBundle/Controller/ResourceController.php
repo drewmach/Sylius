@@ -12,12 +12,18 @@
 namespace Sylius\Bundle\ResourceBundle\Controller;
 
 use FOS\RestBundle\Controller\FOSRestController;
+use FOS\RestBundle\View\View;
+use Hateoas\Configuration\Route;
+use Hateoas\Representation\Factory\PagerfantaFactory;
+use Sylius\Bundle\ResourceBundle\Form\DefaultFormFactory;
+use Sylius\Component\Resource\Event\ResourceEvent;
 use Sylius\Component\Resource\Repository\RepositoryInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Form\FormInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
@@ -53,6 +59,11 @@ class ResourceController extends FOSRestController
      */
     protected $redirectHandler;
 
+    /**
+     * @var string
+     */
+    protected $stateMachineGraph;
+
     public function __construct(Configuration $config)
     {
         $this->config = $config;
@@ -70,16 +81,20 @@ class ResourceController extends FOSRestController
         $this->resourceResolver = new ResourceResolver($this->config);
         if (null !== $container) {
             $this->redirectHandler = new RedirectHandler($this->config, $container->get('router'));
-            $this->flashHelper = new FlashHelper(
-                $this->config,
-                $container->get('translator'),
-                $container->get('session')
-            );
+
+            if (!$this->config->isApiRequest()) {
+                $this->flashHelper = new FlashHelper(
+                    $this->config,
+                    $container->get('translator'),
+                    $container->get('session')
+                );
+            }
+
             $this->domainManager = new DomainManager(
                 $container->get($this->config->getServiceName('manager')),
                 $container->get('event_dispatcher'),
-                $this->flashHelper,
-                $this->config
+                $this->config,
+                !$this->config->isApiRequest() ? $this->flashHelper : null
             );
         }
     }
@@ -121,6 +136,16 @@ class ResourceController extends FOSRestController
             );
             $resources->setCurrentPage($request->get('page', 1), true, true);
             $resources->setMaxPerPage($this->config->getPaginationMaxPerPage());
+
+            if ($this->config->isApiRequest()) {
+                $resources = $this->getPagerfantaFactory()->createRepresentation(
+                    $resources,
+                    new Route(
+                        $request->attributes->get('_route'),
+                        $request->attributes->get('_route_params')
+                    )
+                );
+            }
         } else {
             $resources = $this->resourceResolver->getResource(
                 $repository,
@@ -152,7 +177,15 @@ class ResourceController extends FOSRestController
         if ($request->isMethod('POST') && $form->submit($request)->isValid()) {
             $resource = $this->domainManager->create($resource);
 
-            if (null === $resource) {
+            if ($this->config->isApiRequest()) {
+                if ($resource instanceof ResourceEvent) {
+                    throw new HttpException($resource->getErrorCode(), $resource->getMessage());
+                }
+
+                return $this->handleView($this->view($resource, 201));
+            }
+
+            if ($resource instanceof ResourceEvent) {
                 return $this->redirectHandler->redirectToIndex();
             }
 
@@ -160,7 +193,7 @@ class ResourceController extends FOSRestController
         }
 
         if ($this->config->isApiRequest()) {
-            return $this->handleView($this->view($form));
+            return $this->handleView($this->view($form, 400));
         }
 
         $view = $this
@@ -183,16 +216,28 @@ class ResourceController extends FOSRestController
     public function updateAction(Request $request)
     {
         $resource = $this->findOr404($request);
-        $form = $this->getForm($resource);
+        $form     = $this->getForm($resource);
 
-        if (($request->isMethod('PUT') || $request->isMethod('POST')) && $form->submit($request)->isValid()) {
+        if (in_array($request->getMethod(), array('POST', 'PUT', 'PATCH')) && $form->submit($request, !$request->isMethod('PATCH'))->isValid()) {
             $this->domainManager->update($resource);
+
+            if ($this->config->isApiRequest()) {
+                if ($resource instanceof ResourceEvent) {
+                    throw new HttpException($resource->getErrorCode(), $resource->getMessage());
+                }
+
+                return $this->handleView($this->view($resource, 204));
+            }
+
+            if ($resource instanceof ResourceEvent) {
+                return $this->redirectHandler->redirectToIndex();
+            }
 
             return $this->redirectHandler->redirectTo($resource);
         }
 
         if ($this->config->isApiRequest()) {
-            return $this->handleView($this->view($form));
+            return $this->handleView($this->view($form, 400));
         }
 
         $view = $this
@@ -207,6 +252,44 @@ class ResourceController extends FOSRestController
         return $this->handleView($view);
     }
 
+    /**
+     * @param Request $request
+     *
+     * @return RedirectResponse
+     */
+    public function deleteAction(Request $request)
+    {
+        $resource = $this->domainManager->delete($this->findOr404($request));
+
+        if ($this->config->isApiRequest()) {
+            if ($resource instanceof ResourceEvent) {
+                throw new HttpException($resource->getErrorCode(), $resource->getMessage());
+            }
+
+            return $this->handleView($this->view());
+        }
+
+        return $this->redirectHandler->redirectToIndex();
+    }
+
+    /**
+     * @param Request $request
+     * @param int     $version
+     *
+     * @return RedirectResponse
+     */
+    public function revertAction(Request $request, $version)
+    {
+        $resource   = $this->findOr404($request);
+        $em         = $this->get('doctrine.orm.entity_manager');
+        $repository = $em->getRepository('Gedmo\Loggable\Entity\LogEntry');
+        $repository->revert($resource, $version);
+
+        $this->domainManager->update($resource, 'revert');
+
+        return $this->redirectHandler->redirectTo($resource);
+    }
+
     public function moveUpAction(Request $request)
     {
         return $this->move($request, 1);
@@ -217,16 +300,29 @@ class ResourceController extends FOSRestController
         return $this->move($request, -1);
     }
 
-    /**
-     * @param  Request          $request
-     * @return RedirectResponse
-     */
-    public function deleteAction(Request $request)
+    public function updateStateAction(Request $request, $transition, $graph = null)
     {
         $resource = $this->findOr404($request);
-        $this->domainManager->delete($resource);
 
-        return $this->redirectHandler->redirectToIndex();
+        if (null === $graph) {
+            $graph = $this->stateMachineGraph;
+        }
+
+        $stateMachine = $this->get('sm.factory')->get($resource, $graph);
+        if (!$stateMachine->can($transition)) {
+            throw new NotFoundHttpException(sprintf(
+                'The requested transition %s cannot be applied on the given %s with graph %s.',
+                $transition,
+                $this->config->getResourceName(),
+                $graph
+            ));
+        }
+
+        $stateMachine->apply($transition);
+
+        $this->domainManager->update($resource);
+
+        return $this->redirectHandler->redirectToReferer();
     }
 
     /**
@@ -244,7 +340,22 @@ class ResourceController extends FOSRestController
      */
     public function getForm($resource = null)
     {
-        return $this->createForm($this->config->getFormType(), $resource);
+        $type = $this->config->getFormType();
+
+        if (strpos($type, '\\') !== false) { // full class name specified
+            $type = new $type();
+        } elseif (!$this->get('form.registry')->hasType($type)) { // form alias is not registered
+
+            $defaultFormFactory = new DefaultFormFactory($this->container->get('form.factory'));
+
+            return $defaultFormFactory->create($resource, $this->container->get($this->config->getServiceName('manager')));
+        }
+
+        if ($this->config->isApiRequest()) {
+            return $this->container->get('form.factory')->createNamed('', $type, $resource, array('csrf_protection' => false));
+        }
+
+        return $this->createForm($type, $resource);
     }
 
     /**
@@ -292,6 +403,12 @@ class ResourceController extends FOSRestController
         return $this->get($this->config->getServiceName('repository'));
     }
 
+    /**
+     * @param Request $request
+     * @param integer $movement
+     *
+     * @return RedirectResponse
+     */
     protected function move(Request $request, $movement)
     {
         $resource = $this->findOr404($request);
@@ -299,5 +416,25 @@ class ResourceController extends FOSRestController
         $this->domainManager->move($resource, $movement);
 
         return $this->redirectHandler->redirectToIndex();
+    }
+
+    /**
+     * @return PagerfantaFactory
+     */
+    protected function getPagerfantaFactory()
+    {
+        return new PagerfantaFactory();
+    }
+
+    protected function handleView(View $view)
+    {
+        $handler = $this->get('fos_rest.view_handler');
+        $handler->setExclusionStrategyGroups($this->config->getSerializationGroups());
+
+        if ($version = $this->config->getSerializationVersion()) {
+            $handler->setExclusionStrategyVersion($version);
+        }
+
+        return $handler->handle($view);
     }
 }

@@ -23,18 +23,85 @@ use Symfony\Component\Intl\Intl;
  */
 class LoadCountriesData extends DataFixture
 {
+    private $states = array(
+        'AL' => 'Alabama',
+        'AK' => 'Alaska',
+        'AZ' => 'Arizona',
+        'AR' => 'Arkansas',
+        'CA' => 'California',
+        'CO' => 'Colorado',
+        'CT' => 'Connecticut',
+        'DE' => 'Delaware',
+        'DC' => 'District Of Columbia',
+        'FL' => 'Florida',
+        'GA' => 'Georgia',
+        'HI' => 'Hawaii',
+        'ID' => 'Idaho',
+        'IL' => 'Illinois',
+        'IN' => 'Indiana',
+        'IA' => 'Iowa',
+        'KS' => 'Kansas',
+        'KY' => 'Kentucky',
+        'LA' => 'Louisiana',
+        'ME' => 'Maine',
+        'MD' => 'Maryland',
+        'MA' => 'Massachusetts',
+        'MI' => 'Michigan',
+        'MN' => 'Minnesota',
+        'MS' => 'Mississippi',
+        'MO' => 'Missouri',
+        'MT' => 'Montana',
+        'NE' => 'Nebraska',
+        'NV' => 'Nevada',
+        'NH' => 'New Hampshire',
+        'NJ' => 'New Jersey',
+        'NM' => 'New Mexico',
+        'NY' => 'New York',
+        'NC' => 'North Carolina',
+        'ND' => 'North Dakota',
+        'OH' => 'Ohio',
+        'OK' => 'Oklahoma',
+        'OR' => 'Oregon',
+        'PA' => 'Pennsylvania',
+        'RI' => 'Rhode Island',
+        'SC' => 'South Carolina',
+        'SD' => 'South Dakota',
+        'TN' => 'Tennessee',
+        'TX' => 'Texas',
+        'UT' => 'Utah',
+        'VT' => 'Vermont',
+        'VA' => 'Virginia',
+        'WA' => 'Washington',
+        'WV' => 'West Virginia',
+        'WI' => 'Wisconsin',
+        'WY' => 'Wyoming'
+    );
+
     /**
      * {@inheritdoc}
      */
     public function load(ObjectManager $manager)
     {
         $countryRepository = $this->getCountryRepository();
-        $countries = Intl::getRegionBundle()->getCountryNames($this->container->getParameter('sylius.locale'));
+        $countries = Intl::getRegionBundle()->getCountryNames($this->defaultLocale);
+
+        if (Intl::isExtensionLoaded()) {
+            $localisedCountries = array('es' => Intl::getRegionBundle()->getCountryNames('es'));
+        } else {
+            $localisedCountries = array();
+        }
 
         foreach ($countries as $isoName => $name) {
             $country = $countryRepository->createNew();
 
+            $country->setCurrentLocale($this->defaultLocale);
             $country->setName($name);
+
+            foreach ($localisedCountries as $locale => $translatedCountries) {
+                $country->setCurrentLocale($locale);
+                $country->setName($translatedCountries[$isoName]);
+            }
+
             $country->setIsoName($isoName);
 
             if ('US' === $isoName) {
@@ -64,63 +131,9 @@ class LoadCountriesData extends DataFixture
      */
     protected function addUsStates(CountryInterface $country)
     {
-        $states = array(
-            'AL' => 'Alabama',
-            'AK' => 'Alaska',
-            'AZ' => 'Arizona',
-            'AR' => 'Arkansas',
-            'CA' => 'California',
-            'CO' => 'Colorado',
-            'CT' => 'Connecticut',
-            'DE' => 'Delaware',
-            'DC' => 'District Of Columbia',
-            'FL' => 'Florida',
-            'GA' => 'Georgia',
-            'HI' => 'Hawaii',
-            'ID' => 'Idaho',
-            'IL' => 'Illinois',
-            'IN' => 'Indiana',
-            'IA' => 'Iowa',
-            'KS' => 'Kansas',
-            'KY' => 'Kentucky',
-            'LA' => 'Louisiana',
-            'ME' => 'Maine',
-            'MD' => 'Maryland',
-            'MA' => 'Massachusetts',
-            'MI' => 'Michigan',
-            'MN' => 'Minnesota',
-            'MS' => 'Mississippi',
-            'MO' => 'Missouri',
-            'MT' => 'Montana',
-            'NE' => 'Nebraska',
-            'NV' => 'Nevada',
-            'NH' => 'New Hampshire',
-            'NJ' => 'New Jersey',
-            'NM' => 'New Mexico',
-            'NY' => 'New York',
-            'NC' => 'North Carolina',
-            'ND' => 'North Dakota',
-            'OH' => 'Ohio',
-            'OK' => 'Oklahoma',
-            'OR' => 'Oregon',
-            'PA' => 'Pennsylvania',
-            'RI' => 'Rhode Island',
-            'SC' => 'South Carolina',
-            'SD' => 'South Dakota',
-            'TN' => 'Tennessee',
-            'TX' => 'Texas',
-            'UT' => 'Utah',
-            'VT' => 'Vermont',
-            'VA' => 'Virginia',
-            'WA' => 'Washington',
-            'WV' => 'West Virginia',
-            'WI' => 'Wisconsin',
-            'WY' => 'Wyoming'
-        );
-
         $provinceRepository = $this->getProvinceRepository();
 
-        foreach ($states as $isoName => $name) {
+        foreach ($this->states as $isoName => $name) {
             $province = $provinceRepository->createNew()
                 ->setName($name)
                 ->setIsoName($isoName)

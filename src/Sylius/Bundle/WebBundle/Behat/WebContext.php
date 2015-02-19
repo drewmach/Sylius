@@ -13,15 +13,18 @@ namespace Sylius\Bundle\WebBundle\Behat;
 
 use Behat\Gherkin\Node\TableNode;
 use Behat\Mink\Exception\ElementNotFoundException;
+use Behat\Mink\Exception\UnsupportedDriverActionException;
 use Sylius\Bundle\ResourceBundle\Behat\DefaultContext;
+use Symfony\Component\Intl\Intl;
 use Symfony\Component\Security\Core\Exception\AuthenticationException;
+use Behat\Behat\Context\SnippetAcceptingContext;
 
 /**
  * Web context.
  *
  * @author Paweł Jędrzejewski <pawel@sylius.org>
  */
-class WebContext extends DefaultContext
+class WebContext extends DefaultContext implements SnippetAcceptingContext
 {
     /**
      * @Given /^go to "([^""]*)" tab$/
@@ -64,7 +67,11 @@ class WebContext extends DefaultContext
     public function iShouldBeOnThePage($page)
     {
         $this->assertSession()->addressEquals($this->generatePageUrl($page));
-        $this->assertStatusCodeEquals(200);
+
+        try {
+            $this->assertStatusCodeEquals(200);
+        } catch (UnsupportedDriverActionException $e) {
+        }
     }
 
     /**
@@ -260,7 +267,10 @@ class WebContext extends DefaultContext
     {
         $type = str_replace(' ', '_', $type);
 
+        $entityManager = $this->getEntityManager();
+        $entityManager->getFilters()->disable('softdeleteable');
         $resource = $this->findOneBy($type, array($property => $value));
+        $entityManager->getFilters()->enable('softdeleteable');
 
         $this->getSession()->visit($this->generatePageUrl(sprintf('backend_%s_show', $type), array('id' => $resource->getId())));
     }
@@ -293,7 +303,11 @@ class WebContext extends DefaultContext
     public function iShouldBeOnTheResourcePage($type, $property, $value)
     {
         $type = str_replace(' ', '_', $type);
+
+        $entityManager = $this->getEntityManager();
+        $entityManager->getFilters()->disable('softdeleteable');
         $resource = $this->findOneBy($type, array($property => $value));
+        $entityManager->getFilters()->enable('softdeleteable');
 
         $this->assertSession()->addressEquals($this->generatePageUrl(sprintf('backend_%s_show', $type), array('id' => $resource->getId())));
         $this->assertStatusCodeEquals(200);
@@ -488,6 +502,23 @@ class WebContext extends DefaultContext
         $tr = $this->assertSession()->elementExists('css', sprintf('table tbody tr:contains("%s")', $value));
         $this->assertSession()->elementExists('css', $element, $tr);
     }
+    
+    /**
+     * @Then I should not see :button button
+     */
+    public function iShouldNotSeeButton($button)
+    {
+        $this->assertSession()->elementNotExists('css', '.delete-action-form input[value="'.strtoupper($button).'"]');
+    }
+
+    /**
+     * @Then I should not see :button button near :user in :table table
+     */
+    public function iShouldNotSeeButtonInColumnInTable($button, $user, $table)
+    {   
+        $this->assertSession()->elementExists('css', "#".$table." tr[data-user='$user']");
+        $this->assertSession()->elementNotExists('css', "#".$table." tr[data-user='$user'] form input[value=".strtoupper($button)."]");
+    }
 
     /**
      * @When /^I click "([^"]*)" near "([^"]*)"$/
@@ -527,9 +558,63 @@ class WebContext extends DefaultContext
     /**
      * @Then /^I should see product prices in "([^"]*)"$/
      */
-    public function iShouldSeeProductPricesIn($currency)
+    public function iShouldSeeProductPricesIn($code)
     {
-        $this->assertSession()->elementExists('css', sprintf('span.label:contains("%s")', $currency));
+        $symbol = Intl::getCurrencyBundle()->getCurrencySymbol($code);
+        $this->assertSession()->pageTextContains($symbol);
+    }
+
+    /**
+     * @Then I should see :count available currencies
+     */
+    public function iShouldSeeAvailableCurrencies($count)
+    {
+        $this->assertSession()->elementsCount('css', '.currency-menu ul li', $count);
+    }
+
+    /**
+     * @When I change the currency to :currency
+     */
+    public function iChangeTheCurrencyTo($code)
+    {
+        $symbol = Intl::getCurrencyBundle()->getCurrencySymbol($code);
+        $this->clickLink($symbol);
+    }
+
+    /**
+     * @Then I should see :count available locales
+     */
+    public function iShouldSeeAvailableLocales($count)
+    {
+        $this->assertSession()->elementsCount('css', '.locale-menu ul li', $count);
+    }
+
+    /**
+     * @When I change the locale to :locale
+     */
+    public function iChangeTheLocaleTo($name)
+    {
+        $this->clickLink($name);
+    }
+
+    /**
+     * @Then I should browse the store in :locale
+     */
+    public function iShouldBrowseTheStoreInLocale($name)
+    {
+        switch ($name) {
+            case 'English':
+                $text = 'Welcome to Sylius';
+            break;
+            case 'Polish':
+                $text = 'Witaj w Sylius';
+            break;
+            case 'German':
+                $text = 'Englisch';
+            break;
+        }
+
+        $this->assertSession()->pageTextContains($text);
     }
 
     /**
@@ -775,5 +860,51 @@ class WebContext extends DefaultContext
     protected function assertStatusCodeEquals($code)
     {
         $this->assertSession()->statusCodeEquals($code);
+    }
+
+    /**
+     * @Given /^I wait (\d+) (seconds|second)$/
+     */
+    public function iWait($time)
+    {
+        $this->getSession()->wait($time*1000);
+    }
+
+    /**
+     * @Given I deleted :type with :property :value
+     */
+    public function iDeletedResource($type, $property, $value)
+    {
+        $user = $this->findOneBy($type, array($property => $value));
+        $entityManager = $this->getEntityManager();
+        $entityManager->remove($user);
+        $entityManager->flush();
+    }
+
+    /**
+     * @Given I view deleted elements
+     */
+    public function iViewDeletedElements()
+    {
+        $this->clickLink('Show deleted');
+    }
+    
+    /**
+     * @Then I should see table of :id sorted by lastName
+     */
+    public function iShouldSeeTableSortedByLastName($id)
+    {
+        $allNames = $this->getSession()->getPage()->findAll('css', '#'.$id.' > tbody > tr > td > p');
+        $allSurnames = array();
+        
+        foreach ($allNames as $name){
+            $spacePosition = strpos($name->getText(), ' ');
+            $surname = substr($name->getText(), $spacePosition + 1);
+            $allSurnames[] .= $surname;
+        }
+        
+        sort($allSurnames);
+        
+        $this->assertSession()->elementTextContains('css', '#'.$id.' > tbody > tr > td > p', $allSurnames[0]);
     }
 }

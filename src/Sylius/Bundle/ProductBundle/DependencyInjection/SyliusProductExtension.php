@@ -16,7 +16,7 @@ use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Extension\PrependExtensionInterface;
 
 /**
- * Sylius product catalog system container extension.
+ * Product catalog extension.
  *
  * @author Paweł Jędrzejewski <pawel@sylius.org>
  */
@@ -27,7 +27,13 @@ class SyliusProductExtension extends AbstractResourceExtension implements Prepen
      */
     public function load(array $config, ContainerBuilder $container)
     {
-        $this->configure($config, new Configuration(), $container, self::CONFIGURE_LOADER | self::CONFIGURE_DATABASE | self::CONFIGURE_PARAMETERS | self::CONFIGURE_VALIDATORS);
+        $this->configure(
+            $config,
+            new Configuration(),
+            $container,
+            self::CONFIGURE_LOADER | self::CONFIGURE_DATABASE | self::CONFIGURE_PARAMETERS | self::CONFIGURE_VALIDATORS
+            | self::CONFIGURE_FORMS
+        );
     }
 
     /**
@@ -41,6 +47,10 @@ class SyliusProductExtension extends AbstractResourceExtension implements Prepen
         $this->prependVariation($container, $config);
     }
 
+    /**
+     * @param ContainerBuilder $container
+     * @param array            $config
+     */
     private function prependAttribute(ContainerBuilder $container, array $config)
     {
         if (!$container->hasExtension('sylius_attribute')) {
@@ -48,20 +58,31 @@ class SyliusProductExtension extends AbstractResourceExtension implements Prepen
         }
 
         $container->prependExtensionConfig('sylius_attribute', array(
-            'classes' => array(
-                'product' => array(
-                    'subject'   => $config['classes']['product']['model'],
-                    'attribute' => array(
-                        'model' => 'Sylius\Component\Product\Model\Attribute'
-                    ),
-                    'attribute_value' => array(
-                        'model' => 'Sylius\Component\Product\Model\AttributeValue'
-                    ),
-                )
-            ))
+                'classes' => array(
+                    'product' => array(
+                        'subject'         => $config['classes']['product']['model'],
+                        'attribute'       => array(
+                            'model'       => 'Sylius\Component\Product\Model\Attribute',
+                            'repository'  => 'Sylius\Bundle\ResourceBundle\Doctrine\ORM\TranslatableEntityRepository',
+                            'translatable' => array(
+                                'targetEntity' => 'Sylius\Component\Product\Model\AttributeTranslation'
+                            ),
+                        ),
+                        'attribute_translation'       => array(
+                            'model'       => 'Sylius\Component\Product\Model\AttributeTranslation',
+                        ),
+                        'attribute_value' => array(
+                            'model' => 'Sylius\Component\Product\Model\AttributeValue'
+                        ),
+                    )
+                ))
         );
     }
 
+    /**
+     * @param ContainerBuilder $container
+     * @param array            $config
+     */
     private function prependVariation(ContainerBuilder $container, array $config)
     {
         if (!$container->hasExtension('sylius_variation')) {
@@ -69,22 +90,29 @@ class SyliusProductExtension extends AbstractResourceExtension implements Prepen
         }
 
         $container->prependExtensionConfig('sylius_variation', array(
-            'classes' => array(
-                'product' => array(
-                    'variable'   => $config['classes']['product']['model'],
-                    'variant' => array(
-                        'model'      => 'Sylius\Component\Product\Model\Variant',
-                        'controller' => 'Sylius\Bundle\ProductBundle\Controller\VariantController',
-                        'form'       => 'Sylius\Bundle\ProductBundle\Form\Type\VariantType'
-                    ),
-                    'option' => array(
-                        'model' => 'Sylius\Component\Product\Model\Option'
-                    ),
-                    'option_value' => array(
-                        'model' => 'Sylius\Component\Product\Model\OptionValue'
-                    ),
-                )
-            ))
+                'classes' => array(
+                    'product' => array(
+                        'variable'     => $config['classes']['product']['model'],
+                        'variant'      => array(
+                            'model'      => 'Sylius\Component\Product\Model\Variant',
+                            'controller' => 'Sylius\Bundle\ProductBundle\Controller\VariantController',
+                            'form'       => 'Sylius\Bundle\ProductBundle\Form\Type\VariantType'
+                        ),
+                        'option'       => array(
+                            'model'       => 'Sylius\Component\Product\Model\Option',
+                            'repository'  => 'Sylius\Bundle\ResourceBundle\Doctrine\ORM\TranslatableEntityRepository',
+                            'translatable' => array(
+                                'targetEntity' => 'Sylius\Component\Product\Model\OptionTranslation'
+                            ),
+                        ),
+                        'option_translation'       => array(
+                            'model'       => 'Sylius\Component\Product\Model\OptionTranslation',
+                        ),
+                        'option_value' => array(
+                            'model' => 'Sylius\Component\Product\Model\OptionValue'
+                        ),
+                    )
+                ))
         );
     }
 }

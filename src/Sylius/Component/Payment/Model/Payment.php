@@ -11,6 +11,8 @@
 
 namespace Sylius\Component\Payment\Model;
 
+use Sylius\Component\Resource\Exception\UnexpectedTypeException;
+
 /**
  * Payments model.
  *
@@ -172,6 +174,9 @@ class Payment implements PaymentInterface
      */
     public function setAmount($amount)
     {
+        if (!is_int($amount)) {
+            throw new \InvalidArgumentException('Amount must be an integer.');
+        }
         $this->amount = $amount;
 
         return $this;
@@ -234,8 +239,16 @@ class Payment implements PaymentInterface
     /**
      * {@inheritdoc}
      */
-    public function setDetails(array $details)
+    public function setDetails($details)
     {
+        if ($details instanceof \Traversable) {
+            $details = iterator_to_array($details);
+        }
+
+        if (!is_array($details)) {
+            throw new UnexpectedTypeException($details, 'array');
+        }
+
         $this->details = $details;
 
         return $this;

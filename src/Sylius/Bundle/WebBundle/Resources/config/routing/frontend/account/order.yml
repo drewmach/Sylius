@@ -2,22 +2,19 @@
 # (c) Paweł Jędrzejewski
 
 sylius_account_order_index:
-    pattern: /
+    path: /
     methods: [GET]
     defaults:
         _controller: sylius.controller.frontend.account.order:indexAction
 
 sylius_account_order_invoice:
-    pattern: /invoice/{number}.{_format}
+    path: /invoice/{number}.pdf
     methods:  [GET]
     defaults:
         _controller: sylius.controller.frontend.account.order:renderInvoiceAction
-        _format: pdf
-    requirements:
-        _format: html|pdf
 
 sylius_account_order_show:
-    pattern: /{number}
+    path: /{number}
     methods: [GET]
-    defaults: 
+    defaults:
         _controller: sylius.controller.frontend.account.order:showAction
