@@ -21,8 +21,6 @@
     ],
     "require": {
         "php": ">=5.3.3",
-
-<<<<<<< HEAD
         "knplabs/gaufrette":  "0.2.*@dev",
         "sylius/addressing":  "0.14.*@dev",
         "sylius/archetype":   "0.14.*@dev",
