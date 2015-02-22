@@ -66,6 +66,13 @@ class Product extends AbstractTranslatable implements ProductInterface
      * @var Collection|BaseOptionInterface[]
      */
     protected $options;
+    
+    /**
+     * Product id.
+     *
+     * @var bool
+     */
+    protected $subscribable;
 
     /**
      * Creation time.
@@ -141,6 +148,24 @@ class Product extends AbstractTranslatable implements ProductInterface
     public function setName($name)
     {
         $this->translate()->setName($name);
+
+        return $this;
+    }
+    
+    /**
+     * {@inheritdoc}
+     */
+    public function getsubscribable()
+    {
+        return $this->subscribable();
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setsubscribable($subscribable = false)
+    {
+        $this->subscribable($subscribable);
 
         return $this;
     }
